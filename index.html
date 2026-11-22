@@ -17,8 +17,8 @@ body.typing .guessbox button{padding:12px}
 .homeNav{background:#344767;color:#f5f8ff;border:1px solid #63789c;box-shadow:0 4px 14px #0005;font-size:14px;font-weight:750;letter-spacing:0;padding:10px 14px;border-radius:12px;min-height:44px}
 .homeNav:focus-visible{outline:3px solid #8cf2cc;outline-offset:2px}
 /* Native-app-like start screen: game modes first, setup only when needed. */
-.homeScreen .top{justify-content:center;padding:24px 0 8px}
-.homeScreen .logo{font-size:clamp(40px,10vw,57px);letter-spacing:-2px}
+.homeScreen .top{justify-content:space-between;gap:8px;padding:24px 0 8px}
+.homeScreen .logo{font-size:clamp(31px,9.5vw,57px);letter-spacing:-2px}
 .homeScreen .tag,.homeScreen .pill{display:none}
 .tag{display:none}
 #homeMenu{padding:18px 0 35px;text-align:center}
@@ -38,16 +38,16 @@ body.typing .guessbox button{padding:12px}
 #homeMenu .modeCopy strong{font-family:ui-rounded,'Arial Rounded MT Bold','Trebuchet MS',system-ui,sans-serif;font-size:clamp(23px,6vw,29px);font-weight:1000;letter-spacing:-1.1px;line-height:1.05;text-shadow:0 2px 0 #0b18334d}
 #homeMenu .modeCopy small{font-family:ui-rounded,'Trebuchet MS',system-ui,sans-serif;font-size:15px;letter-spacing:.05px;line-height:1.4}
 #homeMenu .modeButton:active{transform:scale(.985)}
-.homeIdentity{display:flex;gap:11px;align-items:center;text-align:left;background:#1d3150;border:1px solid #4e698c;border-radius:16px;padding:10px 14px;color:#f8fffd;text-decoration:none;margin:0 auto 22px;max-width:340px;min-height:70px}
-.homeIdentity .photo{width:48px;height:48px;border:2px solid #7debc5;border-radius:50%;display:grid;place-items:center;font-size:26px;background:#2c5260;overflow:hidden;flex-shrink:0}
+.homeIdentity{display:none;align-items:center;gap:6px;min-height:44px;max-width:36%;padding:4px 0 4px 4px;color:#f8fffd;text-decoration:none}
+.homeScreen .homeIdentity{display:inline-flex}
+.homeIdentity:focus-visible{outline:2px solid #80f4ca;outline-offset:3px}
+.homeIdentity .photo{width:32px;height:32px;border:2px solid #7debc5;border-radius:50%;display:grid;place-items:center;font-size:18px;background:#2c5260;overflow:hidden;flex-shrink:0}
 .homeIdentity .photo img{width:100%;height:100%;object-fit:cover}
-.homeIdentity .name{font-size:17px;font-weight:900;overflow-wrap:anywhere}
-.homeIdentity .sub{font-size:12px;color:#a9c7d8;margin-top:3px}
+.homeIdentity .name{min-width:0;font-size:13px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* The given first word anchors every Solo and Pass & Play chain. */
 .chain .word:first-child{border:2px solid #88f0ca;background:#2b485c}
 .chain .word:first-child::before{content:'START WITH';display:block;color:#9df8d8;font-size:13px;font-weight:900;letter-spacing:1px;margin-bottom:7px}
 .top{position:relative}
-@media(max-width:410px){.homeScreen .logo{font-size:39px}.homeScreen .top{justify-content:flex-start;padding-right:54px}}
 #setup>h1,#setup>p{display:none}
 #setup>.panel{margin-top:30px}
 #setup #startHelp{display:none}
@@ -174,7 +174,7 @@ if(window.visualViewport){const adjust=()=>{const v=window.visualViewport;const 
 const homeMenu=document.createElement('section');
 homeMenu.id='homeMenu';
 homeMenu.innerHTML=`
- <a id="homeIdentity" class="homeIdentity" href="./online.html#profile" aria-label="Open your player profile"><span class="photo" id="homePhoto">👤</span><span><span class="name" id="homeName">Player Profile</span><span class="sub" id="homeSubtitle" style="display:block">Set up your screen name and photo</span></span></a>
+ <a id="homeIdentity" class="homeIdentity" href="./online.html#profile" aria-label="Open your player profile"><span class="photo" id="homePhoto">👤</span><span class="name" id="homeName">Profile</span></a>
  <div class="modeList">
   <button type="button" id="chooseSolo" class="modeButton"><span class="modeIcon" aria-hidden="true">🧠</span><span class="modeCopy"><strong>Solo Play</strong><small>Challenge yourself. Play at your pace.</small></span><span class="modeChevron" aria-hidden="true">›</span></button>
   <button type="button" id="chooseParty" class="modeButton"><span class="modeIcon" aria-hidden="true">👥</span><span class="modeCopy"><strong>Pass &amp; Play</strong><small>Play together on one phone.</small></span><span class="modeChevron" aria-hidden="true">›</span></button>
@@ -182,6 +182,7 @@ homeMenu.innerHTML=`
  </div>
  <div class="homeFooter">Pick a mode to begin</div>`;
 document.querySelector('#setup').before(homeMenu);
+document.querySelector('.top').append(document.querySelector('#homeIdentity'));
 async function loadHomeIdentity(){
  try{
   const base='https://hsdvkdvimzyyyjdhbtzb.supabase.co',key='sb_publishable_r5S0XJMRaDBOXIhiXzslFA_tUYSHuAR';
@@ -193,7 +194,6 @@ async function loadHomeIdentity(){
   const r=await fetch(base+'/rest/v1/rpc/bc_profile_get',{method:'POST',headers:{apikey:key,Authorization:'Bearer '+auth.access_token,'Content-Type':'application/json'},body:'{}'});
   if(!r.ok)return;const p=await r.json();if(!p?.screenName)return;
   document.querySelector('#homeName').textContent=p.screenName;
-  document.querySelector('#homeSubtitle').textContent='View your player card';
   const host=document.querySelector('#homePhoto');host.replaceChildren();
   if(typeof p.photoPath==='string'&&/^[0-9a-f-]{36}\/avatar\.jpg$/.test(p.photoPath)){
    const img=document.createElement('img');img.src=base+'/storage/v1/object/public/brainchain-avatars/'+p.photoPath+'?v='+Date.now();img.alt='Your profile photo';host.append(img);
