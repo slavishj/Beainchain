@@ -95,6 +95,16 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 .statTile{background:#111e35;border-radius:14px;padding:15px 11px}
 .statTile span{font-size:13px;color:#b7cae3;display:block}
 .statTile strong{font-size:27px;color:#8af2d1;display:block;margin-top:5px;font-variant-numeric:tabular-nums}
+.rivalCard{background:#111e34;border:1px solid #405273;border-radius:15px;padding:12px;margin-top:12px}
+.rivalHeading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0 12px}
+.rivalHeading small{color:#bfd2e9;font-size:13px}
+.rivalHeading .playerLink{font-size:16px;text-decoration:none}
+.rivalHeading .playerLink span:first-child{flex-shrink:0}
+.rivalTable{width:100%;table-layout:fixed;border-collapse:collapse;text-align:center;margin-top:8px}
+.rivalTable th,.rivalTable td{padding:8px 3px;overflow-wrap:anywhere}
+.rivalTable thead th,.rivalTable tbody th{font-size:13px;color:#bfd2e9}
+.rivalTable tbody tr{border-top:1px solid #405273}
+.rivalTable td{font-size:18px;font-weight:800;color:#9cf9d8}
 .rankingRow{display:flex;gap:12px;align-items:center;justify-content:space-between;border-bottom:1px solid #405273;padding:13px 4px}
 .rankingRow:last-child{border-bottom:0}
 .rankingName{display:flex;align-items:center;gap:9px;min-width:0}
@@ -137,7 +147,7 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
   <p class="small">Your photo and screen name will be visible to other players. This beta profile is linked to this browser; email account recovery is coming later.</p>
  </div>
  <div class="card"><h2>Your Player Card</h2><div id="profileStats" class="statGrid"></div><p class="small">Word scores are out of 100; game scores are out of 400. Averages use the new points-based games only.</p></div>
- <div class="card"><h2>Head-to-Head Records</h2><p class="small">Your record against each friend in completed points-based games.</p><div id="rivalStats">Loading your matchups...</div></div>
+ <div class="card"><h2>Head-to-Head Records</h2><div id="rivalStats">Loading your matchups...</div></div>
  <div class="card"><h2>Community Leaderboard</h2><p class="small">Highest average word score. Players qualify after 10 scored words.</p><div id="profileLeaderboard">Loading...</div></div>
 </section>
 <section id="lobby" class="card stack">
@@ -317,12 +327,27 @@ async function loadProfile(){
  const value=document.createElement('strong');value.textContent=x.averagePoints+' pts';row.append(left,value);host.append(row)})
  const rivals=await rpc('bc_rival_stats');const rivalHost=$('rivalStats');rivalHost.replaceChildren();
  if(!rivals.length){rivalHost.textContent='Your rivalries will appear once you finish a match.';return}
- rivals.forEach(r=>{const row=document.createElement('div');row.className='rankingRow';const left=document.createElement('div');left.className='rankingName';
- const record=document.createElement('small');record.textContent=`${r.wins} wins · ${r.losses} losses · ${r.ties} ties (${r.games} games)`;
- if(r.screenName)left.append(playerLink(r.screenName,r));else left.append('Friend');
- left.append(record);
- const averages=document.createElement('strong');averages.textContent=`${r.myAverageScore}–${r.theirAverageScore} avg`;
- row.append(left,averages);rivalHost.append(row)});
+ rivals.forEach(r=>{
+  const card=document.createElement('article');card.className='rivalCard';
+  const heading=document.createElement('div');heading.className='rivalHeading';
+  heading.append(r.screenName?playerLink(r.screenName,r):'Friend');
+  const record=document.createElement('small');
+  const gameLabel=r.games===1?'match':'matches';
+  const tieLabel=r.ties===1?'tie':'ties';
+  record.textContent=r.games+' '+gameLabel+' · '+r.ties+' '+tieLabel;
+  heading.append(record);
+  const table=document.createElement('table');table.className='rivalTable';
+  table.innerHTML='<thead><tr><th scope="col">You</th><th scope="col">Stat</th><th scope="col"></th></tr></thead><tbody></tbody>';
+  table.setAttribute('aria-label','Your record against '+(r.screenName||'your friend'));
+  table.tHead.rows[0].cells[2].textContent=r.screenName||'Friend';
+  for(const [label,yours,theirs] of [['Wins',r.wins,r.losses],['Avg. score',r.myAverageScore,r.theirAverageScore]]){
+   const row=table.tBodies[0].insertRow();
+   row.insertCell().textContent=yours??'—';
+   const th=document.createElement('th');th.scope='row';th.textContent=label;row.append(th);
+   row.insertCell().textContent=theirs??'—';
+  }
+  card.append(heading,table);rivalHost.append(card);
+ });
 }
 function showAvatarChoices(show){
  $('avatarChoices').classList.toggle('hide',!show);
