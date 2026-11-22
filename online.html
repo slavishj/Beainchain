@@ -119,6 +119,25 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
   </div>
   <p class="small">Your photo and screen name will be visible to other players. This beta profile is linked to this browser; email account recovery is coming later.</p>
  </div>
+ <div class="card stack">
+  <h2>Account</h2>
+  <p id="accountIdentity" class="small" aria-live="polite"></p>
+  <form id="accountEmailForm" class="stack">
+   <label for="accountEmail">Email address</label>
+   <input id="accountEmail" type="email" maxlength="254" autocomplete="email" required>
+   <div class="grid">
+    <button class="primary" type="submit" value="link">Link email</button>
+    <button class="secondary" type="submit" value="signin">Sign in</button>
+   </div>
+  </form>
+  <form id="accountCodeForm" class="stack hide">
+   <label for="accountCode">Verification code</label>
+   <input id="accountCode" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" maxlength="10" required>
+   <button class="primary" type="submit">Verify code</button>
+   <button class="secondary" id="cancelAccountCode" type="button">Back</button>
+  </form>
+  <div id="accountMessage" role="status" class="small"></div>
+ </div>
  <div class="card"><h2>Your Player Card</h2><div id="profileStats" class="statGrid"></div><p class="small">Word scores are out of 100; game scores are out of 400. Averages use the new points-based games only.</p></div>
  <div class="card"><h2>Head-to-Head Records</h2><p class="small">Your record against each friend in completed points-based games.</p><div id="rivalStats">Loading your matchups...</div></div>
  <div class="card"><h2>Community Leaderboard</h2><p class="small">Highest average word score. Players qualify after 10 scored words.</p><div id="profileLeaderboard">Loading...</div></div>
@@ -126,10 +145,10 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 <section id="lobby" class="card stack">
  <h2>play a friend</h2>
  <ul class="lobbyRules">
-  <li>Take turns.</li>
-  <li>Both players solve the same chain.</li>
-  <li>Earn up to 100 points per word.</li>
-  <li>Highest total wins.</li>
+  <li>Take turns</li>
+  <li>Both players solve the same chain</li>
+  <li>Earn up to 100 points per word</li>
+  <li>Highest total wins</li>
  </ul>
  <div class="gamesHeader"><h2>My Games</h2><button type="button" id="refreshGames">Refresh</button></div>
  <p class="small" id="gamesStatus">Loading your games...</p>
@@ -217,7 +236,7 @@ async function loadProfile(){
 async function openProfile(){
  profileOpen=true;$('profilePanel').classList.remove('hide');$('lobby').classList.add('hide');$('match').classList.add('hide');$('firstTimeTip').classList.add('hide');
  $('profileMessage').textContent='';window.scrollTo(0,0);
- try{await loadProfile()}catch(e){$('profileMessage').textContent=e.message||String(e)}
+ try{await auth();updateAccountPanel();await loadProfile()}catch(e){$('profileMessage').textContent=e.message||String(e)}
 }
 function closeProfile(){profileOpen=false;$('profilePanel').classList.add('hide');$('lobby').classList.toggle('hide',!!code);$('match').classList.toggle('hide',!code);$('firstTimeTip').classList.add('hide');window.scrollTo(0,0)}
 $('profileButton').onclick=openProfile;$('closeProfile').onclick=closeProfile;
@@ -323,17 +342,103 @@ const err=e=>{const m=e.message||String(e);$('message').textContent=m;$('gamesSt
 function labels(){try{return JSON.parse(localStorage.getItem('bc_labels')||'{}')}catch(e){return {}}}
 function storeLabel(c,name){const d=labels();d[c]=name;localStorage.setItem('bc_labels',JSON.stringify(d))}
 function safe(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-async function auth(){
- let saved=JSON.parse(localStorage.getItem('bc_auth')||'null');
- if(saved?.expires_at && saved.expires_at*1000>Date.now()+60000){session=saved;return}
- let path='/auth/v1/signup',body={data:{}};
- if(saved?.refresh_token){path='/auth/v1/token?grant_type=refresh_token';body={refresh_token:saved.refresh_token}}
- let r=await fetch(BASE+path,{method:'POST',headers:{'apikey':KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});
- if(!r.ok && saved?.refresh_token){localStorage.removeItem('bc_auth');return auth()}
- if(!r.ok)throw Error('Unable to sign in as a guest');
- let j=await r.json();session={...j,expires_at:Math.floor(Date.now()/1000)+(j.expires_in||3600)};
- localStorage.setItem('bc_auth',JSON.stringify(session));
+let authRequest=null, accountChallenge=null;
+function saveSession(data){
+ if(!data?.access_token||!data.refresh_token||!data.user?.id)throw Error('BrainChain could not complete sign-in.');
+ const next={...data,expires_at:Math.floor(Date.now()/1000)+(data.expires_in||3600)};
+ localStorage.setItem('bc_auth',JSON.stringify(next));
+ session=next;
 }
+async function authApi(path,method,body,token){
+ const headers={apikey:KEY,'Content-Type':'application/json'};
+ if(token)headers.Authorization='Bearer '+token;
+ const r=await fetch(BASE+'/auth/v1'+path,{method,headers,body:body===undefined?undefined:JSON.stringify(body)});
+ const data=await r.json().catch(()=>null);
+ if(!r.ok)throw Error(data?.msg||data?.message||data?.error_description||'Could not reach the sign-in service.');
+ return data;
+}
+async function auth(){
+ const saved=JSON.parse(localStorage.getItem('bc_auth')||'null');
+ if(saved?.expires_at && saved.expires_at*1000>Date.now()+60000){session=saved;return}
+ if(!authRequest){
+  authRequest=(saved?.refresh_token
+   ?authApi('/token?grant_type=refresh_token','POST',{refresh_token:saved.refresh_token})
+   :authApi('/signup','POST',{data:{}})).then(saveSession).finally(()=>{authRequest=null});
+ }
+ await authRequest;
+}
+function updateAccountPanel(){
+ const email=session?.user?.email;
+ const linked=!!email&&session.user.is_anonymous!==true;
+ $('accountIdentity').textContent=linked?'Signed in as '+email:'Link an email to keep this profile and your games across browsers and the Home Screen app.';
+ $('accountEmailForm').querySelector('[value="link"]').hidden=linked;
+}
+async function accountAction(form,work){
+ const buttons=[...form.querySelectorAll('button')];
+ buttons.forEach(button=>button.disabled=true);
+ try{await work()}catch(e){$('accountMessage').textContent=e.message||String(e)}
+ finally{buttons.forEach(button=>button.disabled=false)}
+}
+$('accountEmailForm').onsubmit=e=>{
+ e.preventDefault();
+ const email=$('accountEmail').value.trim();
+ const linking=e.submitter?.value==='link';
+ accountAction(e.currentTarget,async()=>{
+  if(linking){
+   await auth();
+   if(session.user.email&&session.user.is_anonymous!==true)throw Error('This profile already has a linked email.');
+   await authApi('/user','PUT',{email},session.access_token);
+  }else{
+   await authApi('/otp','POST',{email,create_user:false});
+  }
+  accountChallenge={email,linking,userId:linking?session.user.id:null};
+  $('accountEmailForm').classList.add('hide');
+  $('accountCodeForm').classList.remove('hide');
+  $('accountCode').value='';
+  $('accountMessage').textContent='Enter the code sent to '+email+'.';
+  $('accountCode').focus();
+ });
+};
+function resetAccountCode(){
+ accountChallenge=null;
+ $('accountCode').value='';
+ $('accountCodeForm').classList.add('hide');
+ $('accountEmailForm').classList.remove('hide');
+}
+$('cancelAccountCode').onclick=()=>{
+ resetAccountCode();
+ $('accountMessage').textContent='';
+};
+$('accountCodeForm').onsubmit=e=>{
+ e.preventDefault();
+ if(!accountChallenge)return;
+ const {email,linking,userId}=accountChallenge;
+ const token=$('accountCode').value.trim();
+ accountAction(e.currentTarget,async()=>{
+  if(linking){
+   await auth();
+   if(session.user.id!==userId)throw Error('Return to the profile you started linking.');
+  }
+  const data=await authApi('/verify','POST',{email,token,type:linking?'email_change':'email'});
+  if(linking){
+   if(data?.access_token){
+    if(data.user?.id!==userId)throw Error('The code did not verify this profile.');
+    saveSession(data);
+   }else{
+    const user=await authApi('/user','GET',undefined,session.access_token);
+    if(user?.id!==userId||user.email?.toLowerCase()!==email.toLowerCase()||user.is_anonymous===true)throw Error('Email linking is still pending.');
+    saveSession({...session,user,expires_in:Math.max(1,session.expires_at-Math.floor(Date.now()/1000))});
+   }
+   updateAccountPanel();
+   resetAccountCode();
+   $('accountMessage').textContent='Email linked. Use Sign in with this email from your Home Screen app.';
+  }else{
+   if(authRequest)await authRequest.catch(()=>{});
+   saveSession(data);
+   location.reload();
+  }
+ });
+};
 async function rpc(name,params={}){
  await auth();
  let r=await fetch(BASE+'/rest/v1/rpc/'+name,{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+session.access_token,'Content-Type':'application/json'},body:JSON.stringify(params)});
