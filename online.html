@@ -24,6 +24,8 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 .chainLabel{font-weight:850;letter-spacing:1px;color:#abf1d6;font-size:14px;text-transform:uppercase}
 .chainWord{border:2px solid #4d6687;background:#2a3d5e;border-radius:14px;padding:14px 10px;text-align:center;font-weight:900;letter-spacing:3px;font-size:25px;overflow-wrap:anywhere}
 .chainWord.current{border:3px dashed #79f3c7;background:#123f43;color:#90ffdc}
+.chainWord.starter{border-color:#8ef5cf;background:#29455a;color:#fff}
+.chainWord.starter::before{content:'START WITH';display:block;color:#9cf9d8;font-size:13px;letter-spacing:1.2px;margin-bottom:8px}
 .chainArrow{text-align:center;font-size:21px;color:#b5c8e6;line-height:1}
 .chainHidden{text-align:center;background:#132036;border-radius:13px;padding:18px;color:#d5e2f4;font-weight:750}
 #answer{font-size:18px;text-transform:uppercase;background:#e9fff7;color:#092a30;border:3px solid #70edc2;font-weight:850;caret-color:#092a30}
@@ -104,12 +106,13 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
   </div>
   <p class="small">Your photo and screen name will be visible to other players. This beta profile is linked to this browser; email account recovery is coming later.</p>
  </div>
- <div class="card"><h2>Your Player Card</h2><div id="profileStats" class="statGrid"></div><p class="small">Times currently reflect actual solving time. Clue-penalty scoring is planned for a future update.</p></div>
- <div class="card"><h2>Community Leaderboard</h2><p class="small">Lowest average time per word. Players qualify after 10 completed words.</p><div id="profileLeaderboard">Loading...</div></div>
+ <div class="card"><h2>Your Player Card</h2><div id="profileStats" class="statGrid"></div><p class="small">Word scores are out of 100; game scores are out of 400. Averages use the new points-based games only.</p></div>
+ <div class="card"><h2>Head-to-Head Records</h2><p class="small">Your record against each friend in completed points-based games.</p><div id="rivalStats">Loading your matchups...</div></div>
+ <div class="card"><h2>Community Leaderboard</h2><p class="small">Highest average word score. Players qualify after 10 scored words.</p><div id="profileLeaderboard">Loading...</div></div>
 </section>
 <section id="lobby" class="card stack">
  <h2>Play a friend, one word at a time.</h2>
- <p>Take turns when you're ready. The same puzzle goes to both players. Fastest total time wins.</p>
+ <p>Take turns whenever you're ready. Both players solve the same chain. Earn up to 100 points per word; highest total wins. No timer!</p>
  <div class="gamesHeader"><h2>My Games</h2><button type="button" id="refreshGames">Refresh</button></div>
  <p class="small" id="gamesStatus">Loading your games...</p>
  <div id="gamesList" class="gameList"></div>
@@ -124,8 +127,8 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
   <div class="badge" id="statusBadge">Getting game...</div>
   <h2 id="headline" style="margin-top:16px">Your challenge</h2>
   <div class="grid">
-   <div class="score"><p id="myScoreName" class="playerName">Your total</p><div class="time" id="mine">0:00.0</div></div>
-   <div class="score"><p id="theirScoreName" class="playerName">Friend's total</p><div class="time" id="theirs">0:00.0</div></div>
+   <div class="score"><p id="myScoreName" class="playerName">Your points</p><div class="time" id="mine">0 pts</div></div>
+   <div class="score"><p id="theirScoreName" class="playerName">Friend's points</p><div class="time" id="theirs">0 pts</div></div>
   </div>
   <p id="turnInfo"></p>
   <div class="stack" id="inviteControls">
@@ -139,11 +142,9 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
   </div>
   <div id="chainSection" class="hide"><div class="chainLabel">Your word chain</div><div id="wordChain" class="wordChain" aria-label="Word chain"></div></div>
   <div id="solveControls" class="hide">
-   <div class="time" style="text-align:center" id="stopwatch">0:00.0</div>
+   <div class="badge" id="pointsAvailable" style="display:block;text-align:center;margin:16px auto">Worth 100 points</div>
    <form id="guessForm"><input id="answer" placeholder="Your answer" autocomplete="off" autocapitalize="characters"><button class="primary">GUESS</button></form>
-   <div class="toolbar" style="margin-top:14px"><button id="pause" type="button">Pause (2 left)</button></div>
   </div>
-  <div id="pauseScreen" class="hide"><h2>Game Paused</h2><p>The puzzle is hidden.</p><button id="resume" class="primary full">Resume</button></div>
   <p class="alert" id="message" role="status"></p>
  </div>
 </section>
@@ -157,7 +158,7 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
    <source src="./how-to-play.mp4" type="video/mp4">
    Your browser does not support video playback.
   </video>
-  <p class="small">Invite a friend. Tap Start. Solve the same word. Take turns. Lowest total time wins!</p>
+  <p class="small">Invite a friend. Tap GO! Solve the same word, one turn at a time. First try earns 100 points; each wrong guess costs 20. No timer!</p>
  </div>
 </div>
 <script>
@@ -169,23 +170,29 @@ let profileData=null,selectedAvatar='🧠',profilePhotoPath=null,profileFile=nul
 function avatarUrl(path){return typeof path==='string'&&/^[0-9a-f-]{36}\/avatar\.jpg$/.test(path)?BASE+'/storage/v1/object/public/brainchain-avatars/'+path:null}
 function profilePicture(host,avatar,path){host.replaceChildren();const url=avatarUrl(path);if(url){const img=document.createElement('img');img.src=url+'?v='+Date.now();img.alt='Player photo';host.append(img)}else{host.textContent=avatar||'🧠'}}
 function drawAvatars(){const host=$('avatarChoices');host.replaceChildren();for(const a of AVATARS){const b=document.createElement('button');b.type='button';b.textContent=a;b.className=a===selectedAvatar?'chosen':'';b.setAttribute('aria-label','Select '+a+' avatar');b.setAttribute('aria-pressed',String(a===selectedAvatar));b.onclick=()=>{selectedAvatar=a;profilePhotoPath=null;profileFile=null;$('profilePhoto').value='';$('cameraPhoto').value='';if(profilePhotoPreview){URL.revokeObjectURL(profilePhotoPreview);profilePhotoPreview=''};drawAvatars();profilePicture($('profilePreview'),selectedAvatar,null)};host.append(b)}}
-function statTiles(p){const metrics=[['Average / word',p.words?p.averageSeconds+' sec':'—'],['Fastest word',p.words?p.fastestSeconds+' sec':'—'],['Words solved',p.words],['Games played',p.gamesPlayed],['Games won',p.wins],['Win rate',p.completedGames?Math.round(p.wins/p.completedGames*100)+'%':'—'],['Community rank',p.rank?'#'+p.rank:'Unranked']];const area=$('profileStats');area.replaceChildren();for(const [label,val] of metrics){const tile=document.createElement('div');tile.className='statTile';const name=document.createElement('span');name.textContent=label;const value=document.createElement('strong');value.textContent=val;tile.append(name,value);area.append(tile)}}
+function statTiles(p){const metrics=[['Average word score',p.words?p.averagePoints+' / 100':'—'],['Average game score',p.completedGames?p.averageGameScore+' / 400':'—'],['Perfect words',p.perfectWords],['Total points earned',p.totalPoints],['Words scored',p.words],['Games played',p.gamesPlayed],['Games won',p.wins],['Win rate',p.completedGames?Math.round(p.wins/p.completedGames*100)+'%':'—'],['Community rank',p.rank?'#'+p.rank:'Unranked']];const area=$('profileStats');area.replaceChildren();for(const [label,val] of metrics){const tile=document.createElement('div');tile.className='statTile';const name=document.createElement('span');name.textContent=label;const value=document.createElement('strong');value.textContent=val;tile.append(name,value);area.append(tile)}}
 async function loadProfile(){
  const p=await rpc('bc_profile_get');profileData=p;selectedAvatar=p.avatar||'🧠';profilePhotoPath=p.photoPath||null;profileFile=null;
  $('profileName').value=p.screenName||'';$('profilePhoto').value='';$('cameraPhoto').value='';$('profileDisplay').textContent=p.screenName||'Create your player profile';
  profilePicture($('profilePreview'),selectedAvatar,profilePhotoPath);drawAvatars();statTiles(p);
  const leaders=await rpc('bc_leaderboard');const host=$('profileLeaderboard');host.replaceChildren();
- if(!leaders.length){host.textContent='The leaderboard will appear once players have completed 10 words.';return}
+ if(!leaders.length){host.textContent='The leaderboard will appear once players have completed 10 scored words.'}
  leaders.forEach(x=>{const row=document.createElement('div');row.className='rankingRow';const left=document.createElement('div');left.className='rankingName';
  const badge=document.createElement('span');badge.textContent='#'+x.rank;
  const av=document.createElement('span');const url=avatarUrl(x.photoPath);if(url){const im=document.createElement('img');im.src=url;im.alt='';im.className='profileAvatarSmall';av.append(im)}else{av.textContent=x.avatar||'🧠'}
  const name=document.createElement('div');const strong=document.createElement('strong');strong.textContent=x.screenName;const more=document.createElement('small');more.textContent=x.words+' words';name.append(strong,more);left.append(badge,av,name);
- const value=document.createElement('strong');value.textContent=x.averageSeconds+'s';row.append(left,value);host.append(row)})
+ const value=document.createElement('strong');value.textContent=x.averagePoints+' pts';row.append(left,value);host.append(row)})
+ const rivals=await rpc('bc_rival_stats');const rivalHost=$('rivalStats');rivalHost.replaceChildren();
+ if(!rivals.length){rivalHost.textContent='Your rivalries will appear once you finish a match.';return}
+ rivals.forEach(r=>{const row=document.createElement('div');row.className='rankingRow';const left=document.createElement('div');left.className='rankingName';
+ const icon=document.createElement('span');const url=avatarUrl(r.photoPath);if(url){const im=document.createElement('img');im.src=url;im.alt='';im.className='profileAvatarSmall';icon.append(im)}else{icon.textContent=r.avatar||'👤'}
+ const name=document.createElement('div');const strong=document.createElement('strong');strong.textContent=r.screenName||'Friend';
+ const record=document.createElement('small');record.textContent=`${r.wins} wins · ${r.losses} losses · ${r.ties} ties (${r.games} games)`;
+ name.append(strong,record);left.append(icon,name);
+ const averages=document.createElement('strong');averages.textContent=`${r.myAverageScore}–${r.theirAverageScore} avg`;
+ row.append(left,averages);rivalHost.append(row)});
 }
 async function openProfile(){
- if(game?.status==='active'&&game.currentPlayer===game.myPlayer&&game.started&&!game.paused){
-  alert('Please finish or pause your timed word before opening Profile.');return;
- }
  profileOpen=true;$('profilePanel').classList.remove('hide');$('lobby').classList.add('hide');$('match').classList.add('hide');$('firstTimeTip').classList.add('hide');
  $('profileMessage').textContent='';window.scrollTo(0,0);
  try{await loadProfile()}catch(e){$('profileMessage').textContent=e.message||String(e)}
@@ -240,7 +247,7 @@ $('closeVideo').onclick=closeTutorial;
 $('videoOverlay').addEventListener('click',e=>{if(e.target===$('videoOverlay'))closeTutorial()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeTutorial()});
 if(!localStorage.getItem('bc_tutorial_seen'))$('firstTimeTip').classList.remove('hide');
-let session,code='',game=null,busy=false,clockOffset=0,localTick=0;
+let session,code='',game=null,busy=false;
 let soundOn=localStorage.getItem('bc_sound')!=='off',audioCtx=null,feedbackTimer=null;
 function soundButton(){
  $('soundToggle').textContent=soundOn?'🔊 Sound On':'🔇 Sound Off';
@@ -297,7 +304,6 @@ const err=e=>{const m=e.message||String(e);$('message').textContent=m;$('gamesSt
 function labels(){try{return JSON.parse(localStorage.getItem('bc_labels')||'{}')}catch(e){return {}}}
 function storeLabel(c,name){const d=labels();d[c]=name;localStorage.setItem('bc_labels',JSON.stringify(d))}
 function safe(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function time(ms){let n=Math.max(0,Math.floor(ms||0));let m=Math.floor(n/60000),s=Math.floor(n%60000/1000),d=Math.floor(n%1000/100);return `${m}:${String(s).padStart(2,'0')}.${d}`}
 async function auth(){
  let saved=JSON.parse(localStorage.getItem('bc_auth')||'null');
  if(saved?.expires_at && saved.expires_at*1000>Date.now()+60000){session=saved;return}
@@ -354,7 +360,7 @@ async function refreshMatchPlayers(){
  const mine=myFirst?p.one:p.two,theirs=myFirst?p.two:p.one;
  const showName=(id,player,fallback)=>{const host=$(id);host.replaceChildren();const path=avatarUrl(player?.photoPath);
   if(path){const img=document.createElement('img');img.src=path;img.alt='';img.className='profileAvatarSmall';host.append(img)}else{const icon=document.createElement('span');icon.textContent=player?.avatar||'👤';host.append(icon)}
-  const text=document.createElement('span');text.textContent=(player?.name||fallback)+' total';host.append(text)};
+ const text=document.createElement('span');text.textContent=(player?.name||fallback)+' points';host.append(text)};
  showName('myScoreName',mine,'Your');showName('theirScoreName',theirs,'Friend');
  lastPlayersFetch=Date.now();
  }catch(e){}
@@ -365,54 +371,48 @@ async function refresh(){
 }
 function render(g){
  $('statusBadge').textContent=g.status==='completed'?'GAME COMPLETE':g.status==='waiting'?'AWAITING FRIEND':`WORD ${g.wordNumber} OF 4`;
- $('mine').textContent=time(g.myPlayer===1?g.playerOneTime:g.playerTwoTime);
- $('theirs').textContent=time(g.myPlayer===1?g.playerTwoTime:g.playerOneTime);
- const myTurn=g.currentPlayer===g.myPlayer,started=g.started,paused=g.paused;
+ $('mine').textContent=(g.myPlayer===1?g.playerOnePoints:g.playerTwoPoints)+' pts';
+ $('theirs').textContent=(g.myPlayer===1?g.playerTwoPoints:g.playerOnePoints)+' pts';
+ const myTurn=g.currentPlayer===g.myPlayer,started=g.started;
  $('inviteControls').classList.toggle('hide',g.status!=='waiting');
  $('readyControls').classList.toggle('hide',g.status!=='active'||!myTurn||started);
- $('solveControls').classList.toggle('hide',g.status!=='active'||!myTurn||!started||paused);
- $('pauseScreen').classList.toggle('hide',g.status!=='active'||!myTurn||!started||!paused);
- const safeToShow=g.status==='completed'||g.status==='active'&&!(myTurn&&started&&paused);
+ $('solveControls').classList.toggle('hide',g.status!=='active'||!myTurn||!started);
+ const safeToShow=g.status==='completed'||g.status==='active'&&myTurn&&started;
  $('chainSection').classList.toggle('hide',!safeToShow);
  if(safeToShow){
   const chain=$('wordChain');chain.replaceChildren();
-  const words=Array.isArray(g.chainWords)?g.chainWords:[];
+  const words=Array.isArray(g.chainWords)&&g.chainWords.length?g.chainWords:(g.previousWord?[g.previousWord]:[]);
   const addWord=(word,active=false)=>{
    if(chain.childElementCount){const arrow=document.createElement('div');arrow.className='chainArrow';arrow.textContent='↓';chain.append(arrow)}
-   const box=document.createElement('div');box.className='chainWord'+(active?' current':'');box.textContent=word;chain.append(box);
+   const box=document.createElement('div');box.className='chainWord'+(active?' current':!chain.childElementCount?' starter':'');box.textContent=word;chain.append(box);
   };
   words.forEach(w=>addWord(w));
-  if(g.status==='active'&&myTurn&&started&&!paused&&g.clue)addWord(g.clue,true);
+  if(g.status==='active'&&myTurn&&started&&g.clue)addWord(g.clue,true);
   if(!chain.childElementCount){const hidden=document.createElement('div');hidden.className='chainHidden';hidden.textContent='Your chain will appear here.';chain.append(hidden)}
  }
- $('turnInfo').textContent=g.status==='waiting'?'Share the invitation, then wait for your friend.':g.status==='completed'?'Both players finished!':myTurn?'Your turn — tap GO when ready.':'Waiting for your friend to solve their word.';
- $('headline').textContent=g.status==='completed'?(g.playerOneTime===g.playerTwoTime?'It’s a tie!':(g.myPlayer===1?g.playerOneTime<g.playerTwoTime:g.playerTwoTime<g.playerOneTime)?'You win! 🎉':'Great match!'):'BrainChain Challenge';
+ $('turnInfo').textContent=g.status==='waiting'?'Share the invitation, then wait for your friend.':g.status==='completed'?'Both players finished!':myTurn?(started?'Take your time. Every incorrect guess reveals a letter and costs 20 points.':'Your turn — tap GO when ready. No timer!'):'Waiting for your friend to solve their word.';
+ $('headline').textContent=g.status==='completed'?(g.playerOnePoints===g.playerTwoPoints?'It’s a tie!':(g.myPlayer===1?g.playerOnePoints>g.playerTwoPoints:g.playerTwoPoints>g.playerOnePoints)?'You win! 🎉':'Great match!'):'BrainChain Challenge';
  $('inviteCodeLabel').textContent='Invitation code: '+code;
- if(started&&myTurn){clockOffset=g.turnTime||0;localTick=Date.now()}
- $('stopwatch').textContent=time(clockOffset);
- $('pause').textContent=`Pause (${2-g.pausesUsed} left)`;
- $('pause').disabled=g.pausesUsed>=2;
+ $('pointsAvailable').textContent='Worth '+g.pointsAvailable+' points';
 }
 async function action(callback){if(busy)return;busy=true;try{await callback();$('message').textContent=''}catch(e){err(e)}finally{busy=false}}
 $('create').onclick=()=>action(async()=>{let result=await rpc('brainchain_create_game');await show(result[0]?.game_code||result.game_code)});
 $('join').onclick=()=>action(async()=>{let c=$('joinCode').value.trim().toUpperCase();if(!c)throw Error('Enter a code');await rpc('brainchain_join_game',{p_code:c});await show(c)});
 $('start').onclick=()=>action(async()=>{await rpc('bc_start',{p_code:code});await refresh()});
-$('pause').onclick=()=>action(async()=>{await rpc('bc_pause',{p_code:code,p_resume:false});await refresh()});
-$('resume').onclick=()=>action(async()=>{await rpc('bc_pause',{p_code:code,p_resume:true});await refresh()});
 $('guessForm').onsubmit=e=>{
  e.preventDefault();unlockAudio();
  action(async()=>{
   const v=$('answer').value.trim();if(!v)return;
-  const previousPlayer=game?.currentPlayer,previousWord=game?.wordNumber;
+  const previousPlayer=game?.currentPlayer,previousWord=game?.wordNumber,earned=game?.pointsAvailable||0;
   const correct=await rpc('bc_guess',{p_code:code,p_guess:v});
   $('answer').value='';await refresh();
   const movedOn=game?.currentPlayer!==previousPlayer||game?.wordNumber!==previousWord||game?.status==='completed';
-  if(correct){showFeedback(true,'CORRECT! Time saved.')}
-  else if(movedOn){showFeedback(false,'Last clue revealed. Clock stopped.')}
-  else{showFeedback(false,'Not quite! Another letter revealed.')}
+  if(correct){showFeedback(true,'CORRECT! +'+earned+' points!')}
+  else if(movedOn){showFeedback(false,'All letters revealed. Word complete — 0 points.')}
+  else{showFeedback(false,'Not quite! Another letter revealed. Now worth '+game.pointsAvailable+' points.')}
  });
 };
-$('share').onclick=async()=>{const url=invitation();let text='I challenge you to BrainChain!';try{const p=await rpc('bc_profile_get');if(p.screenName)text=p.screenName+' challenges you to BrainChain! 🧠'+(p.words?' Career: '+p.wins+' wins · '+p.averageSeconds+'s per word.':'')}catch(e){}if(navigator.share){try{await navigator.share({title:'BrainChain Challenge',text,url})}catch(e){}}else{await navigator.clipboard.writeText(text+' '+url);$('message').textContent='Invitation copied'}};
+$('share').onclick=async()=>{const url=invitation();let text='I challenge you to BrainChain!';try{const p=await rpc('bc_profile_get');if(p.screenName)text=p.screenName+' challenges you to BrainChain! 🧠'+(p.words?' Career: '+p.wins+' wins · '+p.averagePoints+' points per word.':'')}catch(e){}if(navigator.share){try{await navigator.share({title:'BrainChain Challenge',text,url})}catch(e){}}else{await navigator.clipboard.writeText(text+' '+url);$('message').textContent='Invitation copied'}};
 $('copy').onclick=async()=>{try{await navigator.clipboard.writeText(invitation());$('message').textContent='Invitation link copied'}catch(e){$('message').textContent=invitation()}};
 $('leave').onclick=()=>{
  code='';game=null;history.replaceState(null,'',location.pathname);
@@ -420,7 +420,6 @@ $('leave').onclick=()=>{
  loadGames();
 };
 $('refreshGames').onclick=loadGames;
-setInterval(()=>{if(game?.started&&!game.paused&&game.currentPlayer===game.myPlayer)$('stopwatch').textContent=time(clockOffset+Date.now()-localTick)},100);
 setInterval(refresh,5000);
 setInterval(loadGames,15000);
 (async()=>{try{await auth();let c=new URLSearchParams(location.search).get('invite');if(c){await rpc('brainchain_join_game',{p_code:c}).catch(async()=>{let g=await rpc('bc_view',{p_code:c});if(!g)throw Error('Could not join')});await show(c)}else{await loadGames();if(location.hash==='#profile')await openProfile()}}catch(e){err(e)}})();
