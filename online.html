@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>BrainChain Online Beta</title>
+<style>
+:root{font-family:system-ui,-apple-system,sans-serif;color:#f4f8ff;background:#0d1428}
+*{box-sizing:border-box}body{margin:0;min-height:100dvh;background:radial-gradient(circle at top,#293b63,#0d1428 65%)}
+main{width:min(100%,640px);margin:auto;padding:25px 18px 65px}
+h1{font-size:39px;margin:12px 0 0;letter-spacing:-1.5px}h1 span{color:#78eac2}
+p{color:#bac9e4;line-height:1.5}h2{margin:0 0 18px}
+.card{background:#1b2945;border:1px solid #435579;border-radius:22px;padding:20px;margin:20px 0;box-shadow:0 14px 40px #0004}
+.hide{display:none!important}button,input{font:inherit;border-radius:13px;padding:15px;border:0;min-height:52px}
+button{font-weight:800;background:#304263;color:white;cursor:pointer}
+button.primary{background:#7be9c3;color:#09272a}button.secondary{background:#334669}
+button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;color:white;width:100%;font-size:18px}
+.full{width:100%}.stack{display:grid;gap:12px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.small{font-size:14px}.badge{display:inline-block;background:#294a4d;color:#a4f6d8;border-radius:20px;padding:7px 12px;font-weight:800;font-size:13px}
+.time{font-weight:900;font-size:35px;font-variant-numeric:tabular-nums;color:#91f2d4}
+.score{background:#131e35;border-radius:15px;padding:15px}.score p{margin:0 0 8px}
+.clue{font-size:28px;font-weight:900;letter-spacing:2px;text-align:center;overflow-wrap:anywhere;margin:24px 0}
+#answer{font-size:18px;text-transform:uppercase}.alert{color:#f9d894;min-height:24px}
+#pauseScreen{background:#111a2e;text-align:center;padding:60px 20px;border-radius:20px}
+#guessForm{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between}
+.toolbar button{min-height:42px;padding:10px 14px}
+@media(max-width:360px){h1{font-size:34px}.clue{font-size:23px}}
+</style>
+</head>
+<body>
+<main>
+<div class="toolbar"><a href="./index.html" style="color:#b7f4dc;padding:13px 0">← BrainChain Home</a><button id="leave" class="secondary hide">Leave game</button></div>
+<h1>Brain<span>Chain</span></h1><p class="small">ONLINE CHALLENGE · TEST VERSION</p>
+<section id="lobby" class="card stack">
+ <h2>Play a friend, one word at a time.</h2>
+ <p>Take turns when you're ready. The same puzzle goes to both players. Fastest total time wins.</p>
+ <button id="create" class="primary full">Create a challenge</button>
+ <p class="small">Have an invitation code?</p>
+ <input id="joinCode" placeholder="Enter invitation code" autocapitalize="characters" autocomplete="off">
+ <button id="join" class="full">Join a challenge</button>
+</section>
+<section id="match" class="hide">
+ <div class="card">
+  <div class="badge" id="statusBadge">Getting game...</div>
+  <h2 id="headline" style="margin-top:16px">Your challenge</h2>
+  <div class="grid">
+   <div class="score"><p>Your total</p><div class="time" id="mine">0:00.0</div></div>
+   <div class="score"><p>Friend's total</p><div class="time" id="theirs">0:00.0</div></div>
+  </div>
+  <p id="turnInfo"></p>
+  <div class="stack" id="inviteControls">
+   <p id="inviteCodeLabel"></p>
+   <button id="share" class="primary">Text invitation</button>
+   <button id="copy" class="secondary">Copy invitation link</button>
+  </div>
+  <div class="stack hide" id="readyControls">
+   <p>Your puzzle will remain hidden until you press Start.</p>
+   <button id="start" class="primary">START WORD</button>
+  </div>
+  <div id="solveControls" class="hide">
+   <div class="clue" id="previous"></div>
+   <div class="clue" id="clue"></div>
+   <div class="time" style="text-align:center" id="stopwatch">0:00.0</div>
+   <form id="guessForm"><input id="answer" placeholder="Your answer" autocomplete="off" autocapitalize="characters"><button class="primary">GUESS</button></form>
+   <div class="toolbar" style="margin-top:14px"><button id="pause" type="button">Pause (2 left)</button></div>
+  </div>
+  <div id="pauseScreen" class="hide"><h2>Game Paused</h2><p>The puzzle is hidden.</p><button id="resume" class="primary full">Resume</button></div>
+  <p class="alert" id="message" role="status"></p>
+ </div>
+</section>
+<p class="small">Beta note: keep this browser tab available during your turn. Text invitations work now; automatic phone notifications are planned later.</p>
+</main>
+<script>
+const BASE='https://hsdvkdvimzyyyjdhbtzb.supabase.co';
+const KEY='sb_publishable_r5S0XJMRaDBOXIhiXzslFA_tUYSHuAR';
+const $=id=>document.getElementById(id);
+let session,code='',game=null,busy=false,clockOffset=0,localTick=0;
+const err=e=>{$('message').textContent=e.message||String(e)};
+function time(ms){let n=Math.max(0,Math.floor(ms||0));let m=Math.floor(n/60000),s=Math.floor(n%60000/1000),d=Math.floor(n%1000/100);return `${m}:${String(s).padStart(2,'0')}.${d}`}
+async function auth(){
+ let saved=JSON.parse(localStorage.getItem('bc_auth')||'null');
+ if(saved?.expires_at && saved.expires_at*1000>Date.now()+60000){session=saved;return}
+ let path='/auth/v1/signup',body={data:{}};
+ if(saved?.refresh_token){path='/auth/v1/token?grant_type=refresh_token';body={refresh_token:saved.refresh_token}}
+ let r=await fetch(BASE+path,{method:'POST',headers:{'apikey':KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});
+ if(!r.ok && saved?.refresh_token){localStorage.removeItem('bc_auth');return auth()}
+ if(!r.ok)throw Error('Unable to sign in as a guest');
+ let j=await r.json();session={...j,expires_at:Math.floor(Date.now()/1000)+(j.expires_in||3600)};
+ localStorage.setItem('bc_auth',JSON.stringify(session));
+}
+async function rpc(name,params={}){
+ await auth();
+ let r=await fetch(BASE+'/rest/v1/rpc/'+name,{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+session.access_token,'Content-Type':'application/json'},body:JSON.stringify(params)});
+ let j=await r.json().catch(()=>null);
+ if(!r.ok)throw Error(j?.message||'Could not reach game server');
+ return j;
+}
+function invitation(){return location.origin+location.pathname+'?invite='+encodeURIComponent(code)}
+async function show(codeToShow){
+ code=String(codeToShow).trim().toUpperCase();history.replaceState(null,'','?invite='+encodeURIComponent(code));
+ $('lobby').classList.add('hide');$('match').classList.remove('hide');$('leave').classList.remove('hide');
+ await refresh();
+}
+async function refresh(){
+ if(!code)return;
+ try{const g=await rpc('bc_view',{p_code:code});game=g;render(g)}catch(e){err(e)}
+}
+function render(g){
+ $('statusBadge').textContent=g.status==='completed'?'GAME COMPLETE':g.status==='waiting'?'AWAITING FRIEND':`WORD ${g.wordNumber} OF 4`;
+ $('mine').textContent=time(g.myPlayer===1?g.playerOneTime:g.playerTwoTime);
+ $('theirs').textContent=time(g.myPlayer===1?g.playerTwoTime:g.playerOneTime);
+ const myTurn=g.currentPlayer===g.myPlayer,started=g.started,paused=g.paused;
+ $('inviteControls').classList.toggle('hide',g.status!=='waiting');
+ $('readyControls').classList.toggle('hide',g.status!=='active'||!myTurn||started);
+ $('solveControls').classList.toggle('hide',g.status!=='active'||!myTurn||!started||paused);
+ $('pauseScreen').classList.toggle('hide',g.status!=='active'||!myTurn||!started||!paused);
+ $('turnInfo').textContent=g.status==='waiting'?'Share the invitation, then wait for your friend.':g.status==='completed'?'Both players finished!':myTurn?'Your turn — tap Start when ready.':'Waiting for your friend to solve their word.';
+ $('headline').textContent=g.status==='completed'?(g.playerOneTime===g.playerTwoTime?'It’s a tie!':(g.myPlayer===1?g.playerOneTime<g.playerTwoTime:g.playerTwoTime<g.playerOneTime)?'You win! 🎉':'Great match!'):'BrainChain Challenge';
+ $('inviteCodeLabel').textContent='Invitation code: '+code;
+ if(started&&myTurn){$('previous').textContent=g.previousWord||'';$('clue').textContent=g.clue||'';clockOffset=g.turnTime||0;localTick=Date.now()}
+ $('stopwatch').textContent=time(clockOffset);
+ $('pause').textContent=`Pause (${2-g.pausesUsed} left)`;
+ $('pause').disabled=g.pausesUsed>=2;
+}
+async function action(callback){if(busy)return;busy=true;try{await callback();$('message').textContent=''}catch(e){err(e)}finally{busy=false}}
+$('create').onclick=()=>action(async()=>{let result=await rpc('brainchain_create_game');await show(result[0]?.game_code||result.game_code)});
+$('join').onclick=()=>action(async()=>{let c=$('joinCode').value.trim().toUpperCase();if(!c)throw Error('Enter a code');await rpc('brainchain_join_game',{p_code:c});await show(c)});
+$('start').onclick=()=>action(async()=>{await rpc('bc_start',{p_code:code});await refresh()});
+$('pause').onclick=()=>action(async()=>{await rpc('bc_pause',{p_code:code,p_resume:false});await refresh()});
+$('resume').onclick=()=>action(async()=>{await rpc('bc_pause',{p_code:code,p_resume:true});await refresh()});
+$('guessForm').onsubmit=e=>{e.preventDefault();action(async()=>{let v=$('answer').value.trim();if(!v)return;let correct=await rpc('bc_guess',{p_code:code,p_guess:v});$('answer').value='';await refresh();$('message').textContent=correct?'Correct! Your friend is up.':'Another letter revealed. Keep going!'})};
+$('share').onclick=async()=>{const url=invitation();if(navigator.share){try{await navigator.share({title:'BrainChain Challenge',text:'I challenge you to BrainChain! Join my game:',url})}catch(e){}}else{await navigator.clipboard.writeText(url);$('message').textContent='Invitation link copied'}};
+$('copy').onclick=async()=>{try{await navigator.clipboard.writeText(invitation());$('message').textContent='Invitation link copied'}catch(e){$('message').textContent=invitation()}};
+$('leave').onclick=()=>{location.href=location.pathname};
+setInterval(()=>{if(game?.started&&!game.paused&&game.currentPlayer===game.myPlayer)$('stopwatch').textContent=time(clockOffset+Date.now()-localTick)},100);
+setInterval(refresh,5000);
+(async()=>{try{await auth();let c=new URLSearchParams(location.search).get('invite');if(c){await rpc('brainchain_join_game',{p_code:c}).catch(async()=>{let g=await rpc('bc_view',{p_code:c});if(!g)throw Error('Could not join')});await show(c)}}catch(e){err(e)}})();
+</script>
+</body>
+</html>
