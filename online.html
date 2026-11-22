@@ -166,6 +166,7 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
    <div class="score"><p id="theirScoreName" class="playerName">Friend's points</p><div class="time" id="theirs">0 pts</div></div>
   </div>
   <p id="turnInfo"></p>
+  <button id="playAgain" class="primary full hide" type="button">Play Again</button>
   <div class="stack" id="inviteControls">
    <p id="inviteCodeLabel"></p>
    <button id="share" class="primary">Text invitation</button>
@@ -503,6 +504,7 @@ function render(g){
  $('mine').textContent=(g.myPlayer===1?g.playerOnePoints:g.playerTwoPoints)+' pts';
  $('theirs').textContent=(g.myPlayer===1?g.playerTwoPoints:g.playerOnePoints)+' pts';
  const myTurn=g.currentPlayer===g.myPlayer,started=g.started;
+ $('playAgain').classList.toggle('hide',g.status!=='completed');
  $('inviteControls').classList.toggle('hide',g.status!=='waiting');
  $('readyControls').classList.toggle('hide',g.status!=='active'||!myTurn||started);
  $('solveControls').classList.toggle('hide',g.status!=='active'||!myTurn||!started);
@@ -525,7 +527,17 @@ function render(g){
  $('pointsAvailable').textContent='Worth '+g.pointsAvailable+' points';
 }
 async function action(callback){if(busy)return;busy=true;try{await callback();$('message').textContent=''}catch(e){err(e)}finally{busy=false}}
-$('create').onclick=()=>action(async()=>{let result=await rpc('brainchain_create_game');await show(result[0]?.game_code||result.game_code)});
+function createChallenge(){
+ return action(async()=>{
+  const result=await rpc('brainchain_create_game');
+  const newCode=result?.[0]?.game_code||result?.game_code;
+  if(!newCode)throw Error('Could not create a challenge');
+  await show(newCode);
+  window.scrollTo(0,0);
+ });
+}
+$('create').onclick=createChallenge;
+$('playAgain').onclick=()=>{if(game?.status==='completed')return createChallenge()};
 $('join').onclick=()=>action(async()=>{let c=$('joinCode').value.trim().toUpperCase();if(!c)throw Error('Enter a code');await rpc('brainchain_join_game',{p_code:c});await show(c)});
 $('start').onclick=()=>action(async()=>{await rpc('bc_start',{p_code:code});await refresh()});
 $('guessForm').onsubmit=e=>{
