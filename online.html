@@ -14,6 +14,7 @@ p{color:#bac9e4;line-height:1.5}h2{margin:0 0 18px}
 .hide{display:none!important}button,input{font:inherit;border-radius:13px;padding:15px;border:0;min-height:52px}
 button{font-weight:800;background:#304263;color:white;cursor:pointer}
 button.primary{background:#7be9c3;color:#09272a}button.secondary{background:#334669}
+.homeButton{display:inline-flex;align-items:center;justify-content:center;min-height:52px;padding:15px;border-radius:13px;background:#334669;color:white;font-weight:800;text-decoration:none}
 button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;color:white;width:100%;font-size:18px}
 .full{width:100%}.stack{display:grid;gap:12px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .small{font-size:14px}.badge{display:inline-block;background:#294a4d;color:#a4f6d8;border-radius:20px;padding:7px 12px;font-weight:800;font-size:13px}
@@ -34,6 +35,8 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 .alert{color:#f9d894;min-height:24px}
 #pauseScreen{background:#111a2e;text-align:center;padding:60px 20px;border-radius:20px}
 #guessForm{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.manualJoin summary{width:fit-content;padding:10px 0;color:#b7f4dc;cursor:pointer}
+.manualJoin .stack{margin-top:6px}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between}
 .toolbar button{min-height:42px;padding:10px 14px}
 .tutorialTip{background:#254c50;border:1px solid #6fe3be;border-radius:16px;padding:14px;margin:14px 0;display:grid;gap:9px}
@@ -82,7 +85,7 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 </head>
 <body>
 <main>
-<div class="toolbar"><a href="./index.html" style="color:#b7f4dc;padding:13px 0">← BrainChain Home</a><button id="profileButton" class="secondary" type="button">👤 Profile</button><button id="howTo" class="secondary" type="button">▶ How to Play</button><button id="soundToggle" class="secondary" type="button" aria-pressed="true">🔊 Sound On</button><button id="testSound" class="secondary" type="button">♫ Test Sound</button><button id="leave" class="secondary hide">My Games</button></div>
+<div class="toolbar"><a class="homeButton" href="./index.html">Home</a><button id="profileButton" class="secondary" type="button">👤 Profile</button><button id="howTo" class="secondary" type="button">▶ How to Play</button><button id="soundToggle" class="secondary" type="button" aria-pressed="true">🔊 Sound On</button><button id="leave" class="secondary hide">My Games</button></div>
 <h1>Brain<span>Chain</span></h1><p class="small">ONLINE CHALLENGE · TEST VERSION</p>
 <div id="firstTimeTip" class="tutorialTip hide">
  <p><strong>New to BrainChain Online?</strong> Watch our quick cartoon walkthrough before your first game.</p>
@@ -112,15 +115,19 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 </section>
 <section id="lobby" class="card stack">
  <h2>Play a friend, one word at a time.</h2>
- <p>Take turns whenever you're ready. Both players solve the same chain. Earn up to 100 points per word; highest total wins. No timer!</p>
+ <p>Take turns whenever you're ready. Both players solve the same chain. Earn up to 100 points per word; highest total wins.</p>
  <div class="gamesHeader"><h2>My Games</h2><button type="button" id="refreshGames">Refresh</button></div>
  <p class="small" id="gamesStatus">Loading your games...</p>
  <div id="gamesList" class="gameList"></div>
  <hr style="border:0;border-top:1px solid #455779;width:100%">
  <button id="create" class="primary full">Create a challenge</button>
- <p class="small">Have an invitation code?</p>
- <input id="joinCode" placeholder="Enter invitation code" autocapitalize="characters" autocomplete="off">
- <button id="join" class="full">Join a challenge</button>
+ <details class="manualJoin">
+  <summary>Enter a code</summary>
+  <div class="stack">
+   <input id="joinCode" aria-label="Invitation code" placeholder="Enter invitation code" autocapitalize="characters" autocomplete="off">
+   <button id="join" class="full">Join a challenge</button>
+  </div>
+ </details>
 </section>
 <section id="match" class="hide">
  <div class="card">
@@ -158,7 +165,7 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
    <source src="./how-to-play.mp4" type="video/mp4">
    Your browser does not support video playback.
   </video>
-  <p class="small">Invite a friend. Tap GO! Solve the same word, one turn at a time. First try earns 100 points; each wrong guess costs 20. No timer!</p>
+  <p class="small">Invite a friend. Tap GO! Solve the same word, one turn at a time. First try earns 100 points; each wrong guess costs 20.</p>
  </div>
 </div>
 <script>
@@ -287,18 +294,15 @@ soundButton();
 // iPhone Safari only allows Web Audio after a direct user gesture.
 // Arm it on each real touch/click, before asynchronous network requests resolve.
 document.addEventListener('pointerdown',()=>{if(soundOn)unlockAudio()?.catch?.(()=>{})},{passive:true});
-$('soundToggle').onclick=()=>{
+$('soundToggle').onclick=async()=>{
  soundOn=!soundOn;localStorage.setItem('bc_sound',soundOn?'on':'off');
- soundButton();if(soundOn){unlockAudio()?.then?.(()=>playFeedbackSound(true)).catch?.(()=>{})}
-};
-$('testSound').onclick=async()=>{
- if(!soundOn){$('testSound').textContent='Turn Sound On first';setTimeout(()=>$('testSound').textContent='♫ Test Sound',1500);return}
- try{
-  await unlockAudio();
-  if(!audioCtx||audioCtx.state!=='running')throw Error('Sound unavailable');
-  playFeedbackSound(true);setTimeout(()=>playFeedbackSound(false),420);
-  $('testSound').textContent='♫ Sound tested';setTimeout(()=>$('testSound').textContent='♫ Test Sound',1800);
- }catch(e){$('testSound').textContent='Sound unavailable';setTimeout(()=>$('testSound').textContent='♫ Test Sound',1800)}
+ soundButton();
+ if(soundOn){
+  try{
+   await unlockAudio();
+   playFeedbackSound(true);
+  }catch(e){}
+ }
 };
 const err=e=>{const m=e.message||String(e);$('message').textContent=m;$('gamesStatus').textContent=m};
 function labels(){try{return JSON.parse(localStorage.getItem('bc_labels')||'{}')}catch(e){return {}}}
@@ -390,7 +394,7 @@ function render(g){
   if(g.status==='active'&&myTurn&&started&&g.clue)addWord(g.clue,true);
   if(!chain.childElementCount){const hidden=document.createElement('div');hidden.className='chainHidden';hidden.textContent='Your chain will appear here.';chain.append(hidden)}
  }
- $('turnInfo').textContent=g.status==='waiting'?'Share the invitation, then wait for your friend.':g.status==='completed'?'Both players finished!':myTurn?(started?'Take your time. Every incorrect guess reveals a letter and costs 20 points.':'Your turn — tap GO when ready. No timer!'):'Waiting for your friend to solve their word.';
+ $('turnInfo').textContent=g.status==='waiting'?'Share the invitation, then wait for your friend.':g.status==='completed'?'Both players finished!':myTurn?(started?'Take your time. Every incorrect guess reveals a letter and costs 20 points.':'Your turn — tap GO when ready.'):'Waiting for your friend to solve their word.';
  $('headline').textContent=g.status==='completed'?(g.playerOnePoints===g.playerTwoPoints?'It’s a tie!':(g.myPlayer===1?g.playerOnePoints>g.playerTwoPoints:g.playerTwoPoints>g.playerOnePoints)?'You win! 🎉':'Great match!'):'BrainChain Challenge';
  $('inviteCodeLabel').textContent='Invitation code: '+code;
  $('pointsAvailable').textContent='Worth '+g.pointsAvailable+' points';
