@@ -123,12 +123,14 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
   <div class="profileHead"><div id="profilePreview" class="profileBadge">🧠</div><div><h2 id="profileDisplay" style="margin:0 0 5px">Your player card</h2><p class="small" style="margin:0">Your BrainChain identity</p></div></div>
   <div class="profileForm">
    <label for="profileName">Screen name</label><input id="profileName" maxlength="20" placeholder="e.g. LakeLymanJeremy" autocomplete="nickname" spellcheck="false">
-   <button id="chooseAvatar" class="secondary" type="button" aria-expanded="false" aria-controls="avatarChoices">Choose avatar</button><div id="avatarChoices" class="avatarChoices hide"></div>
-   <label>Or use your own photo</label>
-   <div class="grid"><button id="choosePhoto" class="secondary" type="button">🖼️ Choose Photo</button><button id="takePhoto" class="secondary" type="button">📷 Take Photo</button></div>
+   <div class="stack">
+    <button id="choosePhoto" class="secondary" type="button">Choose Photo</button>
+    <button id="takePhoto" class="secondary" type="button">Take Photo</button>
+    <button id="chooseAvatar" class="secondary" type="button" aria-expanded="false" aria-controls="avatarChoices">Choose Avatar</button>
+    <div id="avatarChoices" class="avatarChoices hide"></div>
+   </div>
    <input id="profilePhoto" type="file" accept="image/*" class="hide" aria-label="Choose a photo from your library">
    <input id="cameraPhoto" type="file" accept="image/*" capture="environment" class="hide" aria-label="Take a new photo with the camera">
-   <button id="removePhoto" class="secondary" type="button">Use selected avatar instead</button>
    <button id="saveProfile" class="primary full" type="button">Save Profile</button>
    <p class="profileAlert small" id="profileMessage" role="status"></p>
   </div>
@@ -335,7 +337,6 @@ async function openProfile(){
 }
 function closeProfile(){profileOpen=false;$('profileButton').classList.remove('hide');$('profilePanel').classList.add('hide');$('lobby').classList.toggle('hide',!!code);$('match').classList.toggle('hide',!code);$('firstTimeTip').classList.add('hide');window.scrollTo(0,0)}
 $('profileButton').onclick=openProfile;$('closeProfile').onclick=closeProfile;
-$('removePhoto').onclick=()=>{profilePhotoPath=null;profileFile=null;$('profilePhoto').value='';$('cameraPhoto').value='';profilePicture($('profilePreview'),selectedAvatar,null)};
 $('choosePhoto').onclick=()=>$('profilePhoto').click();
 $('takePhoto').onclick=()=>$('cameraPhoto').click();
 function selectedPhoto(e){
