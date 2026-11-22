@@ -126,6 +126,12 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 .score p.playerName{display:flex;align-items:center;gap:7px;font-size:14px;min-width:0;overflow-wrap:anywhere}
 @keyframes popIn{from{opacity:0;transform:scale(.9) translateY(-12px)}to{opacity:1;transform:scale(1) translateY(0)}}
 @media(max-width:360px){h1{font-size:34px}.clue{font-size:23px}}
+.matchHeading{display:flex;justify-content:space-between;align-items:center;gap:8px}
+#chatBadge{color:#9cf9d8}
+#chatMessages{max-height:35dvh;overflow:auto;display:grid;gap:8px;margin:12px 0}
+.chatMessage{margin:0;padding:9px 12px;border-radius:12px;background:#253956;overflow-wrap:anywhere;white-space:pre-wrap}
+.chatMessage.mine{background:#254c50}
+#chatForm textarea{width:100%;min-height:60px;padding:10px;font:inherit;color:white;background:#101a30;border:1px solid #677895;border-radius:10px}
 </style>
 </head>
 <body>
@@ -184,7 +190,10 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 </section>
 <section id="match" class="hide">
  <div class="card">
-  <div class="badge" id="statusBadge">Getting game...</div>
+  <div class="matchHeading">
+   <div class="badge" id="statusBadge">Getting game...</div>
+   <button id="openChat" class="secondary hide" type="button" aria-label="Match chat">💬<span id="chatBadge" class="hide" aria-hidden="true"> ●</span></button>
+  </div>
   <h2 id="headline" style="margin-top:16px">Your challenge</h2>
   <div class="grid">
    <div class="score"><p id="myScoreName" class="playerName">Your points</p><div class="time" id="mine">0 pts</div></div>
@@ -282,6 +291,15 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
   <button id="guideBack" class="secondary" type="button">Back</button>
   <button id="guideNext" class="primary" type="button">Next</button>
  </div>
+</dialog>
+<dialog id="matchChat" class="guideDialog" aria-labelledby="chatTitle">
+ <div class="guideHeader"><h2 id="chatTitle">Match chat</h2><button id="closeChat" type="button">Close</button></div>
+ <div id="chatMessages" aria-live="polite"></div>
+ <form id="chatForm" class="stack">
+  <textarea id="chatDraft" aria-label="Message" placeholder="Write a message" maxlength="500" required></textarea>
+  <div class="toolbar"><button type="button" id="muteChat">Mute chat alerts</button><button type="submit" id="sendChat" class="primary">Send</button></div>
+ </form>
+ <p id="chatStatus" role="status"></p>
 </dialog>
 <script>
 const BASE='https://hsdvkdvimzyyyjdhbtzb.supabase.co';
@@ -553,6 +571,91 @@ async function rpc(name,params={}){
  if(!r.ok)throw Error(j?.message||'Could not reach game server');
  return j;
 }
+const chatDialog=$('matchChat');
+let chatLoading=false, chatSending=false, renderedChat='';
+function chatKey(kind,matchCode){return 'bc_chat_'+kind+'_'+session.user.id+'_'+matchCode}
+async function chatRequest(matchCode,body){
+ await auth();
+ const url=new URL(BASE+'/rest/v1/brainchain_chat_messages');
+ const headers={apikey:KEY,Authorization:'Bearer '+session.access_token};
+ if(body===undefined){
+  url.search=new URLSearchParams({game_code:'eq.'+matchCode,select:'id,sender_id,body',order:'id.desc',limit:'100'});
+ }else{
+  headers['Content-Type']='application/json';
+  headers.Prefer='return=minimal';
+ }
+ const response=await fetch(url,{headers,method:body===undefined?'GET':'POST',
+  body:body===undefined?undefined:JSON.stringify({game_code:matchCode,body})});
+ if(!response.ok)throw Error(body===undefined?'Could not load chat.':'Could not send message.');
+ if(body===undefined)return response.json();
+}
+function updateChatMute(){
+ const muted=localStorage.getItem(chatKey('mute',code))==='1';
+ $('muteChat').textContent=muted?'Unmute chat alerts':'Mute chat alerts';
+ if(muted)setChatUnread(false);
+}
+function setChatUnread(unread){
+ $('chatBadge').classList.toggle('hide',!unread);
+ $('openChat').setAttribute('aria-label',unread?'Match chat, unread messages':'Match chat');
+}
+async function refreshChat(){
+ if(!code||!game||game.status==='waiting'||profileOpen||chatLoading)return;
+ const matchCode=code;
+ chatLoading=true;
+ try{
+  const rows=await chatRequest(matchCode);
+  if(code!==matchCode||profileOpen)return;
+  const seen=chatKey('seen',matchCode);
+  if(!chatDialog.open){
+   const muted=localStorage.getItem(chatKey('mute',matchCode))==='1';
+   const lastSeen=Number(localStorage.getItem(seen)||0);
+   setChatUnread(!muted&&rows.some(row=>row.sender_id!==session.user.id&&row.id>lastSeen));
+   return;
+  }
+  setChatUnread(false);
+  if(rows.length)localStorage.setItem(seen,String(rows[0].id));
+  const signature=matchCode+':'+rows.map(row=>row.id).join(',');
+  if(signature===renderedChat)return;
+  renderedChat=signature;
+  const host=$('chatMessages');
+  host.replaceChildren();
+  if(!rows.length)host.textContent='No messages yet.';
+  for(const row of rows.reverse()){
+   const mine=row.sender_id===session.user.id;
+   const message=document.createElement('p');
+   message.className='chatMessage'+(mine?' mine':'');
+   message.textContent=(mine?'You: ':'Opponent: ')+row.body;
+   host.append(message);
+  }
+  host.scrollTop=host.scrollHeight;
+ }catch(e){
+  if(code===matchCode&&chatDialog.open)$('chatStatus').textContent=e.message;
+ }finally{chatLoading=false}
+}
+$('openChat').onclick=()=>{
+ if(!code||!game||game.status==='waiting')return;
+ renderedChat='';$('chatDraft').value='';$('chatStatus').textContent='';
+ $('chatMessages').textContent='Loading messages…';
+ updateChatMute();chatDialog.showModal();refreshChat();
+};
+$('closeChat').onclick=()=>chatDialog.close();
+$('muteChat').onclick=()=>{
+ const key=chatKey('mute',code);
+ localStorage.setItem(key,localStorage.getItem(key)==='1'?'0':'1');
+ updateChatMute();
+};
+$('chatForm').onsubmit=async e=>{
+ e.preventDefault();
+ const body=$('chatDraft').value.trim(),matchCode=code;
+ if(!body||!matchCode||chatSending)return;
+ chatSending=true;$('sendChat').disabled=true;$('chatStatus').textContent='';
+ try{
+  await chatRequest(matchCode,body);
+  if(code===matchCode){$('chatDraft').value='';await refreshChat()}
+ }catch(e){
+  if(code===matchCode)$('chatStatus').textContent=e.message;
+ }finally{chatSending=false;$('sendChat').disabled=false}
+};
 let loadingGames=false;
 async function loadGames(){
  if(loadingGames||$('lobby').classList.contains('hide'))return;
@@ -623,6 +726,7 @@ async function loadGames(){
 }
 function invitation(){return location.origin+location.pathname+'?invite='+encodeURIComponent(code)}
 async function show(codeToShow){
+ chatDialog.close();game=null;setChatUnread(false);$('openChat').classList.add('hide');
  lastPlayersFetch=0;
  $('myScoreName').textContent='Your points';$('theirScoreName').textContent='Friend’s points';
  code=String(codeToShow).trim().toUpperCase();history.replaceState(null,'','?invite='+encodeURIComponent(code));
@@ -645,9 +749,11 @@ async function refreshMatchPlayers(){
 }
 async function refresh(){
  if(!code)return;
- try{const g=await rpc('bc_view',{p_code:code});game=g;render(g);if(Date.now()-lastPlayersFetch>20000)refreshMatchPlayers()}catch(e){err(e)}
+ const matchCode=code;
+ try{const g=await rpc('bc_view',{p_code:matchCode});if(code!==matchCode)return;game=g;render(g);refreshChat();if(Date.now()-lastPlayersFetch>20000)refreshMatchPlayers()}catch(e){err(e)}
 }
 function render(g){
+ $('openChat').classList.toggle('hide',g.status==='waiting');
  $('statusBadge').textContent=g.status==='completed'?'GAME COMPLETE':g.status==='waiting'?'AWAITING FRIEND':`WORD ${g.wordNumber} OF 4`;
  $('mine').textContent=(g.myPlayer===1?g.playerOnePoints:g.playerTwoPoints)+' pts';
  $('theirs').textContent=(g.myPlayer===1?g.playerTwoPoints:g.playerOnePoints)+' pts';
@@ -715,6 +821,7 @@ $('revealClue').onclick=()=>submitGuess('!',true);
 $('share').onclick=async()=>{const url=invitation();let text='I challenge you to BrainChain!';try{const p=await rpc('bc_profile_get');if(p.screenName)text=p.screenName+' challenges you to BrainChain! 🧠'+(p.words?' Career: '+p.wins+' wins · '+p.averagePoints+' points per word.':'')}catch(e){}if(navigator.share){try{await navigator.share({title:'BrainChain Challenge',text,url})}catch(e){}}else{await navigator.clipboard.writeText(text+' '+url);$('message').textContent='Invitation copied'}};
 $('copy').onclick=async()=>{try{await navigator.clipboard.writeText(invitation());$('message').textContent='Invitation link copied'}catch(e){$('message').textContent=invitation()}};
 $('leave').onclick=()=>{
+ chatDialog.close();
  code='';game=null;history.replaceState(null,'',location.pathname);
  $('match').classList.add('hide');$('lobby').classList.remove('hide');$('leave').classList.add('hide');
  loadGames();
