@@ -35,7 +35,9 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 .alert{color:#f9d894;min-height:24px}
 #pauseScreen{background:#111a2e;text-align:center;padding:60px 20px;border-radius:20px}
 #guessForm{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
-#revealClue{width:100%;margin-top:8px}
+.hintControls{display:flex;justify-content:flex-end;gap:4px;margin:6px 0}
+.hintControls button{min-width:44px;min-height:44px;padding:5px 12px;font-size:14px}
+#hintDetails{margin:0 0 8px;color:#d3e0f2;font-size:13px}
 #gamesStatus:empty{display:none}
 .manualJoin summary{width:fit-content;padding:10px 0;color:#b7f4dc;cursor:pointer}
 .manualJoin .stack{margin-top:6px}
@@ -213,8 +215,12 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
   <div id="chainSection" class="hide"><div class="chainLabel">Your word chain</div><div id="wordChain" class="wordChain" aria-label="Word chain"></div></div>
   <div id="solveControls" class="hide">
    <div class="badge" id="pointsAvailable" style="display:block;text-align:center;margin:16px auto">Worth 100 points</div>
+   <div class="hintControls">
+    <button id="revealClue" class="secondary" type="button">Hint</button>
+    <button id="hintInfo" class="secondary" type="button" aria-label="How hints affect your score" aria-expanded="false" aria-controls="hintDetails">ⓘ</button>
+   </div>
+   <p id="hintDetails" class="hide">A hint reveals one letter and takes 20 points off the word’s value.</p>
    <form id="guessForm"><input id="answer" placeholder="Your answer" autocomplete="off" autocapitalize="characters"><button class="primary">GUESS</button></form>
-   <button id="revealClue" class="secondary" type="button">Reveal a letter (−20 points)</button>
   </div>
   <p class="alert" id="message" role="status"></p>
  </div>
@@ -818,6 +824,10 @@ $('guessForm').onsubmit=e=>{
 };
 // The guess endpoint already handles the point deduction, reveal and turn advance.
 $('revealClue').onclick=()=>submitGuess('!',true);
+$('hintInfo').onclick=()=>{
+ const open=$('hintDetails').classList.toggle('hide')===false;
+ $('hintInfo').setAttribute('aria-expanded',String(open));
+};
 $('share').onclick=async()=>{const url=invitation();let text='I challenge you to BrainChain!';try{const p=await rpc('bc_profile_get');if(p.screenName)text=p.screenName+' challenges you to BrainChain! 🧠'+(p.words?' Career: '+p.wins+' wins · '+p.averagePoints+' points per word.':'')}catch(e){}if(navigator.share){try{await navigator.share({title:'BrainChain Challenge',text,url})}catch(e){}}else{await navigator.clipboard.writeText(text+' '+url);$('message').textContent='Invitation copied'}};
 $('copy').onclick=async()=>{try{await navigator.clipboard.writeText(invitation());$('message').textContent='Invitation link copied'}catch(e){$('message').textContent=invitation()}};
 $('leave').onclick=()=>{
