@@ -36,8 +36,6 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 #pauseScreen{background:#111a2e;text-align:center;padding:60px 20px;border-radius:20px}
 #guessForm{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
 #gamesStatus:empty{display:none}
-.lobbyRules{margin:0;padding-inline-start:1.25em;color:#bac9e4;line-height:1.5}
-.lobbyRules li+li{margin-top:4px}
 .manualJoin summary{width:fit-content;padding:10px 0;color:#b7f4dc;cursor:pointer}
 .manualJoin .stack{margin-top:6px}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between}
@@ -71,11 +69,18 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 .guideScoreRow{justify-content:space-between}
 .guideNav{display:flex;justify-content:space-between;gap:10px;margin-top:18px}
 
-.gameItem{background:#101d35;border:1px solid #465b7b;border-radius:14px;padding:14px;display:grid;gap:9px}
-.gameItem strong{font-size:18px}
-.gameItem small{color:#becce2;font-size:14px}
-.gameItem button{padding:11px;min-height:44px}
-.gameList{display:grid;gap:10px}
+#lobby{padding:16px}
+.gameList,.gameGroup{display:grid;gap:8px}
+.gameGroup+.gameGroup{margin-top:8px}
+.gameGroup h3{margin:0;padding:0 2px;font-size:14px;color:#becce2}
+.gameGroup.yourTurn h3{color:#9cf9d8}
+.gameItem{background:#101d35;border:1px solid #465b7b;border-radius:14px;padding:9px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 8px}
+.gameItem .playerLink{color:#f4f8ff;text-decoration:none}
+.gameLabel{display:block;font-size:12px;color:#becce2;overflow-wrap:anywhere}
+.gameProgress{display:block;color:#becce2;font-size:12px;margin-top:2px}
+.gameOpen{display:grid;justify-items:center;gap:2px;padding:7px 10px;min-height:48px;font-size:13px}
+.gameScore{font-size:17px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.gameRename{grid-column:1/-1;justify-self:start;border-radius:8px;background:none;color:#becce2;font-size:12px;min-height:44px;padding:5px 8px}
 .gamesHeader{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .gamesHeader h2{margin:0}
 .gamesHeader button{padding:9px 12px;min-height:42px;font-size:14px}
@@ -151,17 +156,9 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
  <div class="card"><h2>Community Leaderboard</h2><p class="small">Highest average word score. Players qualify after 10 scored words.</p><div id="profileLeaderboard">Loading...</div></div>
 </section>
 <section id="lobby" class="card stack">
- <h2>play a friend</h2>
- <ul class="lobbyRules">
-  <li>Take turns</li>
-  <li>Both players solve the same chain</li>
-  <li>Earn up to 100 points per word</li>
-  <li>Highest total wins</li>
- </ul>
  <div class="gamesHeader"><h2>My Games</h2><button type="button" id="refreshGames">Refresh</button></div>
- <p class="small" id="gamesStatus">Loading your games...</p>
+ <p class="small" id="gamesStatus" role="status">Loading your games...</p>
  <div id="gamesList" class="gameList"></div>
- <hr style="border:0;border-top:1px solid #455779;width:100%">
  <button id="create" class="primary full">Create a challenge</button>
  <details class="manualJoin">
   <summary>Enter a code</summary>
@@ -513,8 +510,10 @@ async function rpc(name,params={}){
  if(!r.ok)throw Error(j?.message||'Could not reach game server');
  return j;
 }
+let loadingGames=false;
 async function loadGames(){
- if(!$('match').classList.contains('hide'))return;
+ if(loadingGames||$('lobby').classList.contains('hide'))return;
+ loadingGames=true;
  try{
   await auth();
   const r=await fetch(BASE+'/rest/v1/brainchain_games?select=invite_code,status,current_player,player_one_id,player_two_id,word_number,created_at&status=in.(waiting,active)&order=created_at.desc,invite_code.desc&limit=50',{
@@ -522,36 +521,62 @@ async function loadGames(){
   });
   if(!r.ok)throw Error('Could not load your games');
   const items=await r.json();
-  $('gamesStatus').textContent=items.length?'':'No current games. Create a challenge below.';
-  $('gamesList').innerHTML='';
+  if($('lobby').classList.contains('hide'))return;
+  $('gamesStatus').textContent=items.length?'':'No open games yet. Create a challenge to get started.';
+  const groups=['Your turn','Their turn','Waiting for a friend'].map((title,index)=>{
+   const group=document.createElement('section');
+   group.className='gameGroup'+(index===0?' yourTurn':'');
+   const heading=document.createElement('h3');heading.textContent=title;
+   group.append(heading);
+   return group;
+  });
   const names=labels();
   items.forEach((g,index)=>{
    const mine=g.player_one_id===session.user.id?1:2;
-   const friendTurn=g.status==='active'&&g.current_player!==mine;
-   const status=g.status==='waiting'?'Waiting for friend':friendTurn?'Friend’s turn':'Your turn';
-   const progress=g.status==='active'?' · Word '+Math.min(4,g.word_number)+' of 4':'';
+   const waiting=g.status==='waiting';
+   const group=groups[waiting?2:g.current_player===mine?0:1];
    const label=names[g.invite_code]||'Game '+(items.length-index);
    const item=document.createElement('div');item.className='gameItem';
-   item.innerHTML='<strong>'+safe(label)+'</strong><div class="gamePlayer"></div><small></small>';
-   const statusLine=item.querySelector('small');
-   statusLine.textContent=status+progress;
+   const summary=document.createElement('div');
+   const opponent=document.createElement('div');
+   opponent.textContent=waiting?'Invitation pending':'Friend';
+   const gameLabel=document.createElement('span');gameLabel.className='gameLabel';gameLabel.textContent=label;
+   const progress=document.createElement('span');progress.className='gameProgress';
+   if(!waiting)progress.textContent='Word '+Math.min(4,g.word_number)+' of 4';
+   summary.append(opponent,gameLabel,progress);
+   const open=document.createElement('button');
+   open.type='button';open.className='gameOpen'+(group===groups[0]?' primary':' secondary');
+   open.textContent='Open game';
+   open.setAttribute('aria-label','Open '+label);
+   open.onclick=()=>show(g.invite_code);
+   const rename=document.createElement('button');
+   rename.type='button';rename.className='gameRename';rename.textContent='Name game';
+   rename.setAttribute('aria-label','Name '+label);
+   rename.onclick=()=>{const val=prompt('Name this game (for example, Jeff)',label);if(val?.trim()){storeLabel(g.invite_code,val.trim().slice(0,35));loadGames()}};
+   item.append(summary,open,rename);group.append(item);
    if(g.player_two_id){
     rpc('bc_match_players',{p_code:g.invite_code}).then(players=>{
      const friend=mine===1?players?.two:players?.one;
      const name=friend?.name?.trim();
-     if(name){
-      item.querySelector('.gamePlayer').append(playerLink(name,friend));
-      if(friendTurn)statusLine.textContent=name+'’s turn'+progress;
-     }
+     if(name)opponent.replaceChildren(playerLink(name,friend));
     }).catch(()=>{});
    }
-   const controls=document.createElement('div');controls.className='toolbar';
-   const open=document.createElement('button');open.className='primary';open.textContent='Open game';open.onclick=()=>show(g.invite_code);
-   const rename=document.createElement('button');rename.className='secondary';rename.textContent='Name game';
-   rename.onclick=()=>{const val=prompt('Name this game (for example, Jeff)',label);if(val?.trim()){storeLabel(g.invite_code,val.trim().slice(0,35));loadGames()}};
-   controls.append(open,rename);item.append(controls);$('gamesList').append(item);
+   if(!waiting){
+    rpc('bc_view',{p_code:g.invite_code}).then(view=>{
+     const myPoints=mine===1?view?.playerOnePoints:view?.playerTwoPoints;
+     const theirPoints=mine===1?view?.playerTwoPoints:view?.playerOnePoints;
+     if(!Number.isFinite(myPoints)||!Number.isFinite(theirPoints))return;
+     const score=document.createElement('span');score.className='gameScore';
+     score.textContent=myPoints+'–'+theirPoints;
+     const caption=document.createElement('span');caption.textContent='You – Friend';
+     open.replaceChildren(score,caption);
+     open.setAttribute('aria-label','Open '+label+'. You '+myPoints+', friend '+theirPoints+' points.');
+    }).catch(()=>{});
+   }
   });
- }catch(e){err(e)}
+  $('gamesList').replaceChildren(...groups.filter(group=>group.childElementCount>1));
+ }catch(e){$('gamesStatus').textContent=e.message}
+ finally{loadingGames=false}
 }
 function invitation(){return location.origin+location.pathname+'?invite='+encodeURIComponent(code)}
 async function show(codeToShow){
