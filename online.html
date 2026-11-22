@@ -20,7 +20,10 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 .time{font-weight:900;font-size:35px;font-variant-numeric:tabular-nums;color:#91f2d4}
 .score{background:#131e35;border-radius:15px;padding:15px}.score p{margin:0 0 8px}
 .clue{font-size:28px;font-weight:900;letter-spacing:2px;text-align:center;overflow-wrap:anywhere;margin:24px 0}
-#answer{font-size:18px;text-transform:uppercase}.alert{color:#f9d894;min-height:24px}
+#answer{font-size:18px;text-transform:uppercase;background:#e9fff7;color:#092a30;border:3px solid #70edc2;font-weight:850;caret-color:#092a30}
+#answer::placeholder{color:#426761;opacity:1}
+#answer:focus{background:#fff;border-color:#9effd9;outline:4px solid #70edc244}
+.alert{color:#f9d894;min-height:24px}
 #pauseScreen{background:#111a2e;text-align:center;padding:60px 20px;border-radius:20px}
 #guessForm{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between}
@@ -32,12 +35,25 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 .videoBox video{display:block;width:100%;max-height:76dvh;object-fit:contain;border-radius:12px;background:#0d1428}
 .videoTitle{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-bottom:10px}
 .videoTitle h2{margin:0;font-size:20px}
+.gameItem{background:#101d35;border:1px solid #465b7b;border-radius:14px;padding:14px;display:grid;gap:9px}
+.gameItem strong{font-size:18px}
+.gameItem small{color:#becce2;font-size:14px}
+.gameItem button{padding:11px;min-height:44px}
+.gameList{display:grid;gap:10px}
+.gamesHeader{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.gamesHeader h2{margin:0}
+.gamesHeader button{padding:9px 12px;min-height:42px;font-size:14px}
+.feedbackPop{position:fixed;z-index:1200;top:calc(env(safe-area-inset-top,0px) + 86px);left:14px;right:14px;max-width:460px;margin:auto;padding:17px;border-radius:18px;text-align:center;font-weight:900;font-size:20px;box-shadow:0 12px 40px #0009}
+.feedbackPop.good{background:#71f2c4;color:#082b28;border:2px solid #c1ffe6}
+.feedbackPop.bad{background:#ffd0bb;color:#54251c;border:2px solid #fff0dc}
+.feedbackPop:not(.hide){animation:popIn .22s ease-out}
+@keyframes popIn{from{opacity:0;transform:scale(.9) translateY(-12px)}to{opacity:1;transform:scale(1) translateY(0)}}
 @media(max-width:360px){h1{font-size:34px}.clue{font-size:23px}}
 </style>
 </head>
 <body>
 <main>
-<div class="toolbar"><a href="./index.html" style="color:#b7f4dc;padding:13px 0">← BrainChain Home</a><button id="howTo" class="secondary" type="button">▶ How to Play</button><button id="leave" class="secondary hide">Leave game</button></div>
+<div class="toolbar"><a href="./index.html" style="color:#b7f4dc;padding:13px 0">← BrainChain Home</a><button id="howTo" class="secondary" type="button">▶ How to Play</button><button id="soundToggle" class="secondary" type="button" aria-pressed="true">🔊 Sound On</button><button id="leave" class="secondary hide">My Games</button></div>
 <h1>Brain<span>Chain</span></h1><p class="small">ONLINE CHALLENGE · TEST VERSION</p>
 <div id="firstTimeTip" class="tutorialTip hide">
  <p><strong>New to BrainChain Online?</strong> Watch our quick cartoon walkthrough before your first game.</p>
@@ -47,6 +63,10 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 <section id="lobby" class="card stack">
  <h2>Play a friend, one word at a time.</h2>
  <p>Take turns when you're ready. The same puzzle goes to both players. Fastest total time wins.</p>
+ <div class="gamesHeader"><h2>My Games</h2><button type="button" id="refreshGames">Refresh</button></div>
+ <p class="small" id="gamesStatus">Loading your games...</p>
+ <div id="gamesList" class="gameList"></div>
+ <hr style="border:0;border-top:1px solid #455779;width:100%">
  <button id="create" class="primary full">Create a challenge</button>
  <p class="small">Have an invitation code?</p>
  <input id="joinCode" placeholder="Enter invitation code" autocapitalize="characters" autocomplete="off">
@@ -67,8 +87,8 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
    <button id="copy" class="secondary">Copy invitation link</button>
   </div>
   <div class="stack hide" id="readyControls">
-   <p>Your puzzle will remain hidden until you press Start.</p>
-   <button id="start" class="primary">START WORD</button>
+   <p><strong>YOUR TURN!</strong> The puzzle appears when you're ready.</p>
+   <button id="start" class="primary">GO!</button>
   </div>
   <div id="solveControls" class="hide">
    <div class="clue" id="previous"></div>
@@ -83,6 +103,7 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 </section>
 <p class="small">Beta note: keep this browser tab available during your turn. Text invitations work now; automatic phone notifications are planned later.</p>
 </main>
+<div id="feedbackPop" class="feedbackPop hide" role="status" aria-live="assertive"></div>
 <div id="videoOverlay" class="videoOverlay hide" role="dialog" aria-modal="true" aria-label="How to Play BrainChain Online">
  <div class="videoBox">
   <div class="videoTitle"><h2>How to Play BrainChain</h2><button id="closeVideo" type="button" aria-label="Close tutorial">✕ Close</button></div>
@@ -107,7 +128,46 @@ $('videoOverlay').addEventListener('click',e=>{if(e.target===$('videoOverlay'))c
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeTutorial()});
 if(!localStorage.getItem('bc_tutorial_seen'))$('firstTimeTip').classList.remove('hide');
 let session,code='',game=null,busy=false,clockOffset=0,localTick=0;
-const err=e=>{$('message').textContent=e.message||String(e)};
+let soundOn=localStorage.getItem('bc_sound')!=='off',audioCtx=null,feedbackTimer=null;
+function soundButton(){
+ $('soundToggle').textContent=soundOn?'🔊 Sound On':'🔇 Sound Off';
+ $('soundToggle').setAttribute('aria-pressed',String(soundOn));
+}
+function unlockAudio(){
+ if(!soundOn)return;
+ try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume()}catch(e){}
+}
+function playFeedbackSound(good){
+ if(!soundOn||!audioCtx)return;
+ try{
+  const start=audioCtx.currentTime;
+  (good?[660,880]:[340,250]).forEach((hz,i)=>{
+   const oscillator=audioCtx.createOscillator(),gain=audioCtx.createGain(),t=start+i*.14;
+   oscillator.type=good?'sine':'triangle';oscillator.frequency.value=hz;
+   gain.gain.setValueAtTime(.0001,t);
+   gain.gain.exponentialRampToValueAtTime(.13,t+.015);
+   gain.gain.exponentialRampToValueAtTime(.0001,t+.125);
+   oscillator.connect(gain);gain.connect(audioCtx.destination);
+   oscillator.start(t);oscillator.stop(t+.14);
+  });
+ }catch(e){}
+}
+function showFeedback(good,message){
+ const el=$('feedbackPop');clearTimeout(feedbackTimer);
+ el.textContent=(good?'✓ ':'✕ ')+message;
+ el.className='feedbackPop '+(good?'good':'bad');
+ playFeedbackSound(good);
+ feedbackTimer=setTimeout(()=>el.classList.add('hide'),2200);
+}
+soundButton();
+$('soundToggle').onclick=()=>{
+ soundOn=!soundOn;localStorage.setItem('bc_sound',soundOn?'on':'off');
+ soundButton();if(soundOn){unlockAudio();playFeedbackSound(true)}
+};
+const err=e=>{const m=e.message||String(e);$('message').textContent=m;$('gamesStatus').textContent=m};
+function labels(){try{return JSON.parse(localStorage.getItem('bc_labels')||'{}')}catch(e){return {}}}
+function storeLabel(c,name){const d=labels();d[c]=name;localStorage.setItem('bc_labels',JSON.stringify(d))}
+function safe(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function time(ms){let n=Math.max(0,Math.floor(ms||0));let m=Math.floor(n/60000),s=Math.floor(n%60000/1000),d=Math.floor(n%1000/100);return `${m}:${String(s).padStart(2,'0')}.${d}`}
 async function auth(){
  let saved=JSON.parse(localStorage.getItem('bc_auth')||'null');
@@ -126,6 +186,32 @@ async function rpc(name,params={}){
  let j=await r.json().catch(()=>null);
  if(!r.ok)throw Error(j?.message||'Could not reach game server');
  return j;
+}
+async function loadGames(){
+ if(!$('match').classList.contains('hide'))return;
+ try{
+  await auth();
+  const r=await fetch(BASE+'/rest/v1/brainchain_games?select=invite_code,status,current_player,player_one_id,player_two_id,word_number,created_at&order=created_at.desc&limit=50',{
+   headers:{apikey:KEY,Authorization:'Bearer '+session.access_token}
+  });
+  if(!r.ok)throw Error('Could not load your games');
+  const items=await r.json();
+  $('gamesStatus').textContent=items.length?'Choose any game to continue.':'No games yet. Create your first challenge below.';
+  $('gamesList').innerHTML='';
+  const names=labels();
+  items.forEach(g=>{
+   const mine=g.player_one_id===session.user.id?1:2;
+   const status=g.status==='completed'?'Completed':g.status==='waiting'?'Waiting for friend':g.current_player===mine?'Your turn':'Friend’s turn';
+   const label=names[g.invite_code]||'Game '+g.invite_code.slice(0,6);
+   const item=document.createElement('div');item.className='gameItem';
+   item.innerHTML='<strong>'+safe(label)+'</strong><small>'+safe(status)+(g.status==='active'?' · Word '+Math.min(4,g.word_number)+' of 4':'')+'</small>';
+   const controls=document.createElement('div');controls.className='toolbar';
+   const open=document.createElement('button');open.className='primary';open.textContent='Open game';open.onclick=()=>show(g.invite_code);
+   const rename=document.createElement('button');rename.className='secondary';rename.textContent='Name game';
+   rename.onclick=()=>{const val=prompt('Name this game (for example, Jeff)',label);if(val?.trim()){storeLabel(g.invite_code,val.trim().slice(0,35));loadGames()}};
+   controls.append(open,rename);item.append(controls);$('gamesList').append(item);
+  });
+ }catch(e){err(e)}
 }
 function invitation(){return location.origin+location.pathname+'?invite='+encodeURIComponent(code)}
 async function show(codeToShow){
@@ -146,7 +232,7 @@ function render(g){
  $('readyControls').classList.toggle('hide',g.status!=='active'||!myTurn||started);
  $('solveControls').classList.toggle('hide',g.status!=='active'||!myTurn||!started||paused);
  $('pauseScreen').classList.toggle('hide',g.status!=='active'||!myTurn||!started||!paused);
- $('turnInfo').textContent=g.status==='waiting'?'Share the invitation, then wait for your friend.':g.status==='completed'?'Both players finished!':myTurn?'Your turn — tap Start when ready.':'Waiting for your friend to solve their word.';
+ $('turnInfo').textContent=g.status==='waiting'?'Share the invitation, then wait for your friend.':g.status==='completed'?'Both players finished!':myTurn?'Your turn — tap GO when ready.':'Waiting for your friend to solve their word.';
  $('headline').textContent=g.status==='completed'?(g.playerOneTime===g.playerTwoTime?'It’s a tie!':(g.myPlayer===1?g.playerOneTime<g.playerTwoTime:g.playerTwoTime<g.playerOneTime)?'You win! 🎉':'Great match!'):'BrainChain Challenge';
  $('inviteCodeLabel').textContent='Invitation code: '+code;
  if(started&&myTurn){$('previous').textContent=g.previousWord||'';$('clue').textContent=g.clue||'';clockOffset=g.turnTime||0;localTick=Date.now()}
@@ -160,13 +246,31 @@ $('join').onclick=()=>action(async()=>{let c=$('joinCode').value.trim().toUpperC
 $('start').onclick=()=>action(async()=>{await rpc('bc_start',{p_code:code});await refresh()});
 $('pause').onclick=()=>action(async()=>{await rpc('bc_pause',{p_code:code,p_resume:false});await refresh()});
 $('resume').onclick=()=>action(async()=>{await rpc('bc_pause',{p_code:code,p_resume:true});await refresh()});
-$('guessForm').onsubmit=e=>{e.preventDefault();action(async()=>{let v=$('answer').value.trim();if(!v)return;let correct=await rpc('bc_guess',{p_code:code,p_guess:v});$('answer').value='';await refresh();$('message').textContent=correct?'Correct! Your friend is up.':'Another letter revealed. Keep going!'})};
+$('guessForm').onsubmit=e=>{
+ e.preventDefault();unlockAudio();
+ action(async()=>{
+  const v=$('answer').value.trim();if(!v)return;
+  const previousPlayer=game?.currentPlayer,previousWord=game?.wordNumber;
+  const correct=await rpc('bc_guess',{p_code:code,p_guess:v});
+  $('answer').value='';await refresh();
+  const movedOn=game?.currentPlayer!==previousPlayer||game?.wordNumber!==previousWord||game?.status==='completed';
+  if(correct){showFeedback(true,'CORRECT! Time saved.')}
+  else if(movedOn){showFeedback(false,'Last clue revealed. Clock stopped.')}
+  else{showFeedback(false,'Not quite! Another letter revealed.')}
+ });
+};
 $('share').onclick=async()=>{const url=invitation();if(navigator.share){try{await navigator.share({title:'BrainChain Challenge',text:'I challenge you to BrainChain! Join my game:',url})}catch(e){}}else{await navigator.clipboard.writeText(url);$('message').textContent='Invitation link copied'}};
 $('copy').onclick=async()=>{try{await navigator.clipboard.writeText(invitation());$('message').textContent='Invitation link copied'}catch(e){$('message').textContent=invitation()}};
-$('leave').onclick=()=>{location.href=location.pathname};
+$('leave').onclick=()=>{
+ code='';game=null;history.replaceState(null,'',location.pathname);
+ $('match').classList.add('hide');$('lobby').classList.remove('hide');$('leave').classList.add('hide');
+ loadGames();
+};
+$('refreshGames').onclick=loadGames;
 setInterval(()=>{if(game?.started&&!game.paused&&game.currentPlayer===game.myPlayer)$('stopwatch').textContent=time(clockOffset+Date.now()-localTick)},100);
 setInterval(refresh,5000);
-(async()=>{try{await auth();let c=new URLSearchParams(location.search).get('invite');if(c){await rpc('brainchain_join_game',{p_code:c}).catch(async()=>{let g=await rpc('bc_view',{p_code:c});if(!g)throw Error('Could not join')});await show(c)}}catch(e){err(e)}})();
+setInterval(loadGames,15000);
+(async()=>{try{await auth();let c=new URLSearchParams(location.search).get('invite');if(c){await rpc('brainchain_join_game',{p_code:c}).catch(async()=>{let g=await rpc('bc_view',{p_code:c});if(!g)throw Error('Could not join')});await show(c)}else{await loadGames()}}catch(e){err(e)}})();
 </script>
 </body>
 </html>
