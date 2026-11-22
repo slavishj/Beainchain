@@ -80,7 +80,7 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 </head>
 <body>
 <main>
-<div class="toolbar"><a href="./index.html" style="color:#b7f4dc;padding:13px 0">← BrainChain Home</a><button id="profileButton" class="secondary" type="button">👤 Profile</button><button id="howTo" class="secondary" type="button">▶ How to Play</button><button id="soundToggle" class="secondary" type="button" aria-pressed="true">🔊 Sound On</button><button id="leave" class="secondary hide">My Games</button></div>
+<div class="toolbar"><a href="./index.html" style="color:#b7f4dc;padding:13px 0">← BrainChain Home</a><button id="profileButton" class="secondary" type="button">👤 Profile</button><button id="howTo" class="secondary" type="button">▶ How to Play</button><button id="soundToggle" class="secondary" type="button" aria-pressed="true">🔊 Sound On</button><button id="testSound" class="secondary" type="button">♫ Test Sound</button><button id="leave" class="secondary hide">My Games</button></div>
 <h1>Brain<span>Chain</span></h1><p class="small">ONLINE CHALLENGE · TEST VERSION</p>
 <div id="firstTimeTip" class="tutorialTip hide">
  <p><strong>New to BrainChain Online?</strong> Watch our quick cartoon walkthrough before your first game.</p>
@@ -94,7 +94,10 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
   <div class="profileForm">
    <label for="profileName">Screen name</label><input id="profileName" maxlength="20" placeholder="e.g. LakeLymanJeremy" autocomplete="nickname" spellcheck="false">
    <label>Choose an avatar</label><div id="avatarChoices" class="avatarChoices"></div>
-   <label for="profilePhoto">Or use your own photo</label><input id="profilePhoto" type="file" accept="image/*" style="font-size:14px;padding:12px" aria-label="Upload profile photo">
+   <label>Or use your own photo</label>
+   <div class="grid"><button id="choosePhoto" class="secondary" type="button">🖼️ Choose Photo</button><button id="takePhoto" class="secondary" type="button">📷 Take Photo</button></div>
+   <input id="profilePhoto" type="file" accept="image/*" class="hide" aria-label="Choose a photo from your library">
+   <input id="cameraPhoto" type="file" accept="image/*" capture="environment" class="hide" aria-label="Take a new photo with the camera">
    <button id="removePhoto" class="secondary" type="button">Use selected avatar instead</button>
    <button id="saveProfile" class="primary full" type="button">Save Profile</button>
    <p class="profileAlert small" id="profileMessage" role="status"></p>
@@ -165,11 +168,11 @@ const AVATARS=['🧠','🦊','🐻','🦉','🐸','🤖','🐙','🦁','🐼','�
 let profileData=null,selectedAvatar='🧠',profilePhotoPath=null,profileFile=null,profileOpen=false,profilePhotoPreview='',lastPlayersFetch=0;
 function avatarUrl(path){return typeof path==='string'&&/^[0-9a-f-]{36}\/avatar\.jpg$/.test(path)?BASE+'/storage/v1/object/public/brainchain-avatars/'+path:null}
 function profilePicture(host,avatar,path){host.replaceChildren();const url=avatarUrl(path);if(url){const img=document.createElement('img');img.src=url+'?v='+Date.now();img.alt='Player photo';host.append(img)}else{host.textContent=avatar||'🧠'}}
-function drawAvatars(){const host=$('avatarChoices');host.replaceChildren();for(const a of AVATARS){const b=document.createElement('button');b.type='button';b.textContent=a;b.className=a===selectedAvatar?'chosen':'';b.setAttribute('aria-label','Select '+a+' avatar');b.setAttribute('aria-pressed',String(a===selectedAvatar));b.onclick=()=>{selectedAvatar=a;profilePhotoPath=null;profileFile=null;$('profilePhoto').value='';if(profilePhotoPreview){URL.revokeObjectURL(profilePhotoPreview);profilePhotoPreview=''};drawAvatars();profilePicture($('profilePreview'),selectedAvatar,null)};host.append(b)}}
+function drawAvatars(){const host=$('avatarChoices');host.replaceChildren();for(const a of AVATARS){const b=document.createElement('button');b.type='button';b.textContent=a;b.className=a===selectedAvatar?'chosen':'';b.setAttribute('aria-label','Select '+a+' avatar');b.setAttribute('aria-pressed',String(a===selectedAvatar));b.onclick=()=>{selectedAvatar=a;profilePhotoPath=null;profileFile=null;$('profilePhoto').value='';$('cameraPhoto').value='';if(profilePhotoPreview){URL.revokeObjectURL(profilePhotoPreview);profilePhotoPreview=''};drawAvatars();profilePicture($('profilePreview'),selectedAvatar,null)};host.append(b)}}
 function statTiles(p){const metrics=[['Average / word',p.words?p.averageSeconds+' sec':'—'],['Fastest word',p.words?p.fastestSeconds+' sec':'—'],['Words solved',p.words],['Games played',p.gamesPlayed],['Games won',p.wins],['Win rate',p.completedGames?Math.round(p.wins/p.completedGames*100)+'%':'—'],['Community rank',p.rank?'#'+p.rank:'Unranked']];const area=$('profileStats');area.replaceChildren();for(const [label,val] of metrics){const tile=document.createElement('div');tile.className='statTile';const name=document.createElement('span');name.textContent=label;const value=document.createElement('strong');value.textContent=val;tile.append(name,value);area.append(tile)}}
 async function loadProfile(){
  const p=await rpc('bc_profile_get');profileData=p;selectedAvatar=p.avatar||'🧠';profilePhotoPath=p.photoPath||null;profileFile=null;
- $('profileName').value=p.screenName||'';$('profilePhoto').value='';$('profileDisplay').textContent=p.screenName||'Create your player profile';
+ $('profileName').value=p.screenName||'';$('profilePhoto').value='';$('cameraPhoto').value='';$('profileDisplay').textContent=p.screenName||'Create your player profile';
  profilePicture($('profilePreview'),selectedAvatar,profilePhotoPath);drawAvatars();statTiles(p);
  const leaders=await rpc('bc_leaderboard');const host=$('profileLeaderboard');host.replaceChildren();
  if(!leaders.length){host.textContent='The leaderboard will appear once players have completed 10 words.';return}
@@ -189,13 +192,21 @@ async function openProfile(){
 }
 function closeProfile(){profileOpen=false;$('profilePanel').classList.add('hide');$('lobby').classList.toggle('hide',!!code);$('match').classList.toggle('hide',!code);$('firstTimeTip').classList.add('hide');window.scrollTo(0,0)}
 $('profileButton').onclick=openProfile;$('closeProfile').onclick=closeProfile;
-$('removePhoto').onclick=()=>{profilePhotoPath=null;profileFile=null;$('profilePhoto').value='';profilePicture($('profilePreview'),selectedAvatar,null)};
-$('profilePhoto').onchange=e=>{
+$('removePhoto').onclick=()=>{profilePhotoPath=null;profileFile=null;$('profilePhoto').value='';$('cameraPhoto').value='';profilePicture($('profilePreview'),selectedAvatar,null)};
+$('choosePhoto').onclick=()=>$('profilePhoto').click();
+$('takePhoto').onclick=()=>$('cameraPhoto').click();
+function selectedPhoto(e){
  const f=e.target.files?.[0];if(!f)return;
+ if(!f.type.startsWith('image/')&&!/\.(jpe?g|png|heic|heif|webp|avif)$/i.test(f.name)){
+  $('profileMessage').textContent='Please choose a photo, not a document or other file.';e.target.value='';return;
+ }
  if(f.size>12*1024*1024){$('profileMessage').textContent='Choose a photo smaller than 12 MB.';e.target.value='';return}
  profileFile=f;if(profilePhotoPreview)URL.revokeObjectURL(profilePhotoPreview);
  profilePhotoPreview=URL.createObjectURL(f);const host=$('profilePreview');host.replaceChildren();const im=document.createElement('img');im.src=profilePhotoPreview;im.alt='Selected photo';host.append(im);
-};
+ $('profileMessage').textContent='Photo selected. Tap Save Profile to upload it.';
+}
+$('profilePhoto').onchange=selectedPhoto;
+$('cameraPhoto').onchange=selectedPhoto;
 async function uploadPhoto(file){
  let img;
  try{img=await createImageBitmap(file)}catch(e){
@@ -237,7 +248,11 @@ function soundButton(){
 }
 function unlockAudio(){
  if(!soundOn)return;
- try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume()}catch(e){}
+ try{
+  audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state!=='running')return audioCtx.resume();
+  return Promise.resolve();
+ }catch(e){return Promise.reject(e)}
 }
 function playFeedbackSound(good){
  if(!soundOn||!audioCtx)return;
@@ -247,7 +262,7 @@ function playFeedbackSound(good){
    const oscillator=audioCtx.createOscillator(),gain=audioCtx.createGain(),t=start+i*.14;
    oscillator.type=good?'sine':'triangle';oscillator.frequency.value=hz;
    gain.gain.setValueAtTime(.0001,t);
-   gain.gain.exponentialRampToValueAtTime(.13,t+.015);
+   gain.gain.exponentialRampToValueAtTime(.28,t+.015);
    gain.gain.exponentialRampToValueAtTime(.0001,t+.125);
    oscillator.connect(gain);gain.connect(audioCtx.destination);
    oscillator.start(t);oscillator.stop(t+.14);
@@ -262,9 +277,21 @@ function showFeedback(good,message){
  feedbackTimer=setTimeout(()=>el.classList.add('hide'),2200);
 }
 soundButton();
+// iPhone Safari only allows Web Audio after a direct user gesture.
+// Arm it on each real touch/click, before asynchronous network requests resolve.
+document.addEventListener('pointerdown',()=>{if(soundOn)unlockAudio()?.catch?.(()=>{})},{passive:true});
 $('soundToggle').onclick=()=>{
  soundOn=!soundOn;localStorage.setItem('bc_sound',soundOn?'on':'off');
- soundButton();if(soundOn){unlockAudio();playFeedbackSound(true)}
+ soundButton();if(soundOn){unlockAudio()?.then?.(()=>playFeedbackSound(true)).catch?.(()=>{})}
+};
+$('testSound').onclick=async()=>{
+ if(!soundOn){$('testSound').textContent='Turn Sound On first';setTimeout(()=>$('testSound').textContent='♫ Test Sound',1500);return}
+ try{
+  await unlockAudio();
+  if(!audioCtx||audioCtx.state!=='running')throw Error('Sound unavailable');
+  playFeedbackSound(true);setTimeout(()=>playFeedbackSound(false),420);
+  $('testSound').textContent='♫ Sound tested';setTimeout(()=>$('testSound').textContent='♫ Test Sound',1800);
+ }catch(e){$('testSound').textContent='Sound unavailable';setTimeout(()=>$('testSound').textContent='♫ Test Sound',1800)}
 };
 const err=e=>{const m=e.message||String(e);$('message').textContent=m;$('gamesStatus').textContent=m};
 function labels(){try{return JSON.parse(localStorage.getItem('bc_labels')||'{}')}catch(e){return {}}}
