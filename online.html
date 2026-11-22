@@ -123,7 +123,7 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
   <div class="profileHead"><div id="profilePreview" class="profileBadge">🧠</div><div><h2 id="profileDisplay" style="margin:0 0 5px">Your player card</h2><p class="small" style="margin:0">Your BrainChain identity</p></div></div>
   <div class="profileForm">
    <label for="profileName">Screen name</label><input id="profileName" maxlength="20" placeholder="e.g. LakeLymanJeremy" autocomplete="nickname" spellcheck="false">
-   <label>Choose an avatar</label><div id="avatarChoices" class="avatarChoices"></div>
+   <button id="chooseAvatar" class="secondary" type="button" aria-expanded="false" aria-controls="avatarChoices">Choose avatar</button><div id="avatarChoices" class="avatarChoices hide"></div>
    <label>Or use your own photo</label>
    <div class="grid"><button id="choosePhoto" class="secondary" type="button">🖼️ Choose Photo</button><button id="takePhoto" class="secondary" type="button">📷 Take Photo</button></div>
    <input id="profilePhoto" type="file" accept="image/*" class="hide" aria-label="Choose a photo from your library">
@@ -322,7 +322,13 @@ async function loadProfile(){
  const averages=document.createElement('strong');averages.textContent=`${r.myAverageScore}–${r.theirAverageScore} avg`;
  row.append(left,averages);rivalHost.append(row)});
 }
+function showAvatarChoices(show){
+ $('avatarChoices').classList.toggle('hide',!show);
+ $('chooseAvatar').setAttribute('aria-expanded',String(show));
+}
+$('chooseAvatar').onclick=()=>showAvatarChoices($('avatarChoices').classList.contains('hide'));
 async function openProfile(){
+ showAvatarChoices(false);
  profileOpen=true;$('profileButton').classList.add('hide');$('profilePanel').classList.remove('hide');$('lobby').classList.add('hide');$('match').classList.add('hide');$('firstTimeTip').classList.add('hide');
  $('profileMessage').textContent='';window.scrollTo(0,0);
  try{await loadProfile()}catch(e){$('profileMessage').textContent=e.message||String(e)}
