@@ -38,15 +38,18 @@ body.typing .guessbox button{padding:12px}
 #homeMenu .modeCopy strong{font-family:ui-rounded,'Arial Rounded MT Bold','Trebuchet MS',system-ui,sans-serif;font-size:clamp(23px,6vw,29px);font-weight:1000;letter-spacing:-1.1px;line-height:1.05;text-shadow:0 2px 0 #0b18334d}
 #homeMenu .modeCopy small{font-family:ui-rounded,'Trebuchet MS',system-ui,sans-serif;font-size:15px;letter-spacing:.05px;line-height:1.4}
 #homeMenu .modeButton:active{transform:scale(.985)}
-.profileEntry{display:none;position:absolute;right:0;top:16px;width:46px;height:46px;align-items:center;justify-content:center;border:1px solid #7792b5;border-radius:50%;background:#304664;color:#f6fff9;font-size:24px;text-decoration:none}
-.homeScreen .profileEntry{display:flex}
+.homeIdentity{display:flex;gap:11px;align-items:center;text-align:left;background:#1d3150;border:1px solid #4e698c;border-radius:16px;padding:10px 14px;color:#f8fffd;text-decoration:none;margin:0 auto 22px;max-width:340px;min-height:70px}
+.homeIdentity .photo{width:48px;height:48px;border:2px solid #7debc5;border-radius:50%;display:grid;place-items:center;font-size:26px;background:#2c5260;overflow:hidden;flex-shrink:0}
+.homeIdentity .photo img{width:100%;height:100%;object-fit:cover}
+.homeIdentity .name{font-size:17px;font-weight:900;overflow-wrap:anywhere}
+.homeIdentity .sub{font-size:12px;color:#a9c7d8;margin-top:3px}
 .top{position:relative}
 @media(max-width:410px){.homeScreen .logo{font-size:39px}.homeScreen .top{justify-content:flex-start;padding-right:54px}}
 #setup>h1,#setup>p{display:none}
 #setup>.panel{margin-top:30px}
 #setup #startHelp{display:none}
 #setup .panel h2{font-size:25px}
-</style></head><body><main><div class="top"><div><div class="logo">Brain<span>Chain!</span> <span style="font-size:20px">⚡</span></div><div class="tag">FAMILY GAME NIGHT JUST GOT SMARTER.</div></div><div class="pill">LOCAL PARTY EDITION · V1</div></div>
+</style></head><body><main><div class="top"><div><div class="logo">Brain<span>Chain!</span></div><div class="tag">FAMILY GAME NIGHT JUST GOT SMARTER.</div></div><div class="pill">LOCAL PARTY EDITION · V1</div></div>
 <section id="setup"><h1>Family Game Night<br>Just Got Smarter.</h1><p class="muted">Find each predetermined missing word, beat the clock, and keep the family laughing.</p><div class="panel"><h2>Set up your showdown</h2><div class="grid"><div class="field"><label>HOW MANY TEAMS?</label><select id="count"><option value="1">Solo Play</option><option value="2">2 teams</option><option value="3">3 teams</option><option value="4">4 teams</option></select></div><div class="field" id="playersField"><label>PLAYERS PER TEAM</label><select id="players"><option value="1">1 player per team</option><option value="2">2 players per team</option></select></div><div class="field" id="secondsField"><label>SECONDS PER GUESS</label><select id="seconds"><option>10</option><option>15</option><option selected>20</option><option>30</option><option>45</option><option>60</option><option>90</option></select></div><div class="field" id="targetField"><label>FIRST TO WIN</label><select id="target"><option value="3">3 rounds</option><option value="5" selected>5 rounds</option><option value="7">7 rounds</option><option value="10">10 rounds</option></select></div></div><div id="teamNameField"><label>TEAM NAMES</label><div class="teamrows" id="teamrows"></div></div><p class="help" id="setupHelp">Choose Solo Play for your own word chains, or choose teams to compete and pass the phone.</p><button type="button" class="primary full" id="start" style="margin-top:10px">START GAME →</button><p class="help" id="startHelp">If viewing a file preview, open this HTML in Safari or Chrome to play.</p></div></section>
 <section id="handoff" class="hide"><div class="panel" style="margin-top:42px;text-align:center;padding:36px 22px"><div style="font-size:58px">📱</div><h1 style="margin:15px 0" id="handoffTitle">PASS THE PHONE</h1><h2 id="handoffTeam">Team 1, you’re up!</h2><p class="muted" id="handoffHelp">Your chain stays hidden until you tap START TURN.</p><button type="button" id="handoffEnd" class="secondary full" style="margin-top:12px">END GAME / HOME</button><button type="button" id="readyTurn" class="primary full" style="margin-top:20px;font-size:20px;padding:20px">START TURN ▶</button><p class="help" id="handoffFooter">Make sure the phone is with the right team before starting.</p></div></section><section id="game" class="hide"><div class="tabs"><button class="active" id="gameTab">PLAY</button><button id="scoreTab">SCOREBOARD</button><button id="rulesTab">RULES</button></div><div id="playView"><div class="scoreboard" id="miniScores"></div><div class="panel"><div class="roundmeta"><span id="roundNum">ROUND 1</span><span id="linkNum">LINK 1 OF 4</span></div><div class="badge" id="turnLabel">YOUR TURN</div><div class="timer" id="clock">0:20</div><div class="progress" id="timerProgress"><div id="bar"></div></div><div class="chain" id="chain"></div><p class="help" style="text-align:center">Guess the missing word. Each adjacent pair forms a common phrase or compound word.</p><div id="guessDock"><div id="activeClue" class="activeClue" aria-live="polite"></div><form id="guessForm" class="guessbox"><input id="guess" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Type missing word" aria-label="Your guess"><button class="primary" type="submit">GUESS</button></form></div><div class="notice" id="notice" aria-live="polite"></div><button type="button" id="continueTurn" class="primary full hide">CONTINUE →</button><div class="actions"><button id="skip" class="secondary">PASS TURN</button><button id="pause" class="secondary">PAUSE</button><button id="hint" class="secondary hide">HINT + LETTER</button></div></div></div><div id="scoresView" class="hide"><div class="panel"><h2 id="scoreHeading">Session scoreboard</h2><div id="fullScores"></div><h2 style="margin-top:22px" id="historyHeading">Recent rounds</h2><div class="history" id="history"></div><div class="actions"><button id="resetSession" class="danger">NEW SESSION</button><button id="backPlay">BACK TO GAME</button></div></div></div><div id="rulesView" class="hide"><div class="panel"><h2>How to play</h2><p class="muted"><b>1.</b> Pass the phone. Tap START to reveal your own chain and begin the timer.</p><p class="muted"><b>2.</b> Guess the missing word before time runs out.</p><p class="muted"><b>3.</b> Wrong or out of time? Another letter appears. Tap CONTINUE to pass the phone (or try again in Solo).</p><p class="muted"><b>4.</b> Finish your own chain. Fewest misses wins the round!</p><p class="muted">Example: FIRE → TRUCK → STOP → SIGN.</p><button id="backRules" class="primary full">BACK TO GAME</button></div></div></section>
 <section id="between" class="hide"><div class="hero"><div class="badge" id="finishBadge">ROUND COMPLETE</div><h1 id="winnerText">Nice link!</h1><p class="muted" id="winnerDetail"></p></div><div class="panel"><h2>Scoreboard</h2><div id="betweenScores"></div><button class="primary full" id="nextRound" style="margin-top:18px">NEXT ROUND →</button><button class="secondary full" id="betweenSession" style="margin-top:10px">END SESSION / CHANGE TEAMS</button></div></section>
@@ -104,6 +107,7 @@ if(window.visualViewport){const adjust=()=>{const v=window.visualViewport;const 
 const homeMenu=document.createElement('section');
 homeMenu.id='homeMenu';
 homeMenu.innerHTML=`
+ <a id="homeIdentity" class="homeIdentity" href="./online.html#profile" aria-label="Open your player profile"><span class="photo" id="homePhoto">👤</span><span><span class="name" id="homeName">Player Profile</span><span class="sub" id="homeSubtitle" style="display:block">Set up your screen name and photo</span></span></a>
  <div class="modeList">
   <button type="button" id="chooseSolo" class="modeButton"><span class="modeIcon" aria-hidden="true">🧠</span><span class="modeCopy"><strong>Solo Play</strong><small>Challenge yourself. Play at your pace.</small></span><span class="modeChevron" aria-hidden="true">›</span></button>
   <button type="button" id="chooseParty" class="modeButton"><span class="modeIcon" aria-hidden="true">👥</span><span class="modeCopy"><strong>Pass &amp; Play</strong><small>Play together on one phone.</small></span><span class="modeChevron" aria-hidden="true">›</span></button>
@@ -111,7 +115,26 @@ homeMenu.innerHTML=`
  </div>
  <div class="homeFooter">Pick a mode to begin</div>`;
 document.querySelector('#setup').before(homeMenu);
-const profileEntry=document.createElement('a');profileEntry.href='./online.html#profile';profileEntry.className='profileEntry';profileEntry.textContent='👤';profileEntry.setAttribute('aria-label','Open Player Profile');profileEntry.title='Your Player Profile';document.querySelector('.top').append(profileEntry);
+async function loadHomeIdentity(){
+ try{
+  const base='https://hsdvkdvimzyyyjdhbtzb.supabase.co',key='sb_publishable_r5S0XJMRaDBOXIhiXzslFA_tUYSHuAR';
+  let auth=JSON.parse(localStorage.getItem('bc_auth')||'null');if(!auth?.access_token)return;
+  if(auth.expires_at*1000<Date.now()+60000){
+   const r=await fetch(base+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:key,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:auth.refresh_token})});
+   if(!r.ok)return;const j=await r.json();auth={...j,expires_at:Math.floor(Date.now()/1000)+(j.expires_in||3600)};localStorage.setItem('bc_auth',JSON.stringify(auth));
+  }
+  const r=await fetch(base+'/rest/v1/rpc/bc_profile_get',{method:'POST',headers:{apikey:key,Authorization:'Bearer '+auth.access_token,'Content-Type':'application/json'},body:'{}'});
+  if(!r.ok)return;const p=await r.json();if(!p?.screenName)return;
+  document.querySelector('#homeName').textContent=p.screenName;
+  document.querySelector('#homeSubtitle').textContent='View your player card';
+  const host=document.querySelector('#homePhoto');host.replaceChildren();
+  if(typeof p.photoPath==='string'&&/^[0-9a-f-]{36}\/avatar\.jpg$/.test(p.photoPath)){
+   const img=document.createElement('img');img.src=base+'/storage/v1/object/public/brainchain-avatars/'+p.photoPath+'?v='+Date.now();img.alt='Your profile photo';host.append(img);
+  }else host.textContent=p.avatar||'🧠';
+ }catch(e){}
+}
+loadHomeIdentity();
+window.addEventListener('pageshow',loadHomeIdentity);
 document.querySelector('#setup .panel').insertAdjacentHTML('afterbegin','<button type="button" class="homeNav" id="setupBack" style="margin-bottom:20px">‹ Back</button>');
 document.querySelector('#setup .panel h2').textContent='Pass & Play';
 document.querySelector('#setupHelp').textContent='Choose your teams, then start playing.';
