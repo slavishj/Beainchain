@@ -43,6 +43,9 @@ body.typing .guessbox button{padding:12px}
 .homeIdentity .photo img{width:100%;height:100%;object-fit:cover}
 .homeIdentity .name{font-size:17px;font-weight:900;overflow-wrap:anywhere}
 .homeIdentity .sub{font-size:12px;color:#a9c7d8;margin-top:3px}
+/* The given first word anchors every Solo and Pass & Play chain. */
+.chain .word:first-child{border:2px solid #88f0ca;background:#2b485c}
+.chain .word:first-child::before{content:'START WITH';display:block;color:#9df8d8;font-size:13px;font-weight:900;letter-spacing:1px;margin-bottom:7px}
 .top{position:relative}
 @media(max-width:410px){.homeScreen .logo{font-size:39px}.homeScreen .top{justify-content:flex-start;padding-right:54px}}
 #setup>h1,#setup>p{display:none}
@@ -96,6 +99,12 @@ function finishRound(){turnToken++;clearInterval(interval);state.running=false;s
 $('readyTurn').addEventListener('click',()=>{if(!state.awaiting)return;startTurn()});
 $('start').addEventListener('click',()=>{let names=[...document.querySelectorAll('.teamrow input')].map((x,i)=>x.value.trim()||`Team ${i+1}`);if($('count').value==='1')names=['Solo'];state={soloPoints:0,soloChains:0,soloStreak:0,teams:names.map(name=>({name,w:0,l:0})),active:0,round:0,step:1,revealed:1,used:[],history:[],seconds:+$('seconds').value,target:+$('target').value,remaining:+$('seconds').value,running:false,paused:false,lock:false,awaiting:true,puzzle:null,match:1,roundTeams:[]};try{audio=new (window.AudioContext||window.webkitAudioContext)();audio.resume()}catch(e){}$('setup').classList.add('hide');updateEnd();newRound();window.scrollTo(0,0)});
 $('guessForm').onsubmit=e=>{e.preventDefault();document.activeElement?.blur?.();if(state.paused||state.lock||!state.running)return;const guess=$('guess').value.normalize('NFKC').trim().replace(/[^a-z]/gi,'').toUpperCase();if(!guess)return;const correct=state.puzzle[state.step].replace(/[^a-z]/gi,'').toUpperCase();if(guess===correct){turnToken++;clearInterval(interval);state.running=false;beep('good');state.step++;state.revealed=1;$('guess').value='';if(state.step>=state.puzzle.length){completeRound();return}storeTeam();$('notice').textContent='✓ CORRECT! Keep your chain going.';startTurn()}else{beep('bad');failedAttempt('✕ Incorrect guess. One more letter revealed.')}};
+// iOS may reposition the keyboard-safe dock on blur before a tap's click event.
+// Submit at touchstart so one tap on GUESS always submits the current answer.
+$('guessForm').querySelector('button').addEventListener('touchstart',e=>{
+ if(e.cancelable)e.preventDefault();
+ $('guessForm').requestSubmit();
+},{passive:false});
 $('continueTurn').onclick=()=>{if(!state.lock)return;passTurn()};
 $('hint').onclick=()=>{if(!solo()||state.lock)return;revealLetter();$('notice').textContent='One more letter revealed.';save()};$('skip').onclick=()=>{if(state.lock||state.paused)return;failedAttempt('Turn passed. One more letter revealed.')};$('pause').onclick=()=>{if(state.lock)return;if(state.paused){state.paused=false;startTurn(true)}else{clearInterval(interval);state.running=false;state.paused=true;$('notice').textContent='Game paused.';render();save()}};
 function showTab(t){$('playView').classList.toggle('hide',t!=='play');$('scoresView').classList.toggle('hide',t!=='scores');$('rulesView').classList.toggle('hide',t!=='rules');['gameTab','scoreTab','rulesTab'].forEach((id,i)=>$(id).classList.toggle('active',['play','scores','rules'][i]===t));if(t==='scores'){$('scoreHeading').textContent=solo()?'Your Solo Score':'Session scoreboard';$('historyHeading').classList.toggle('hide',solo());$('history').classList.toggle('hide',solo());renderScores('fullScores');$('history').innerHTML=state.history.length?state.history.map(h=>`<div><span><strong>Round ${h.round}</strong><br><span class="small muted">${escapeHtml(h.chain)}</span></span><span class="leader">${escapeHtml(h.winner)}</span></div>`).join(''):'<p class="muted">No completed rounds yet.</p>'}}
