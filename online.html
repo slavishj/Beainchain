@@ -51,11 +51,18 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 .soundToggle[aria-checked="true"] #soundState{color:#9cf9d8}
 .tutorialTip{background:#254c50;border:1px solid #6fe3be;border-radius:16px;padding:14px;margin:14px 0;display:grid;gap:9px}
 .tutorialTip p{margin:0;color:#e3fff5}
-.videoOverlay{position:fixed;inset:0;background:#050b18ed;z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px}
-.videoBox{width:min(100%,480px);background:#1a2945;border:1px solid #526e92;border-radius:20px;padding:14px;max-height:94dvh;overflow:auto}
-.videoBox video{display:block;width:100%;max-height:76dvh;object-fit:contain;border-radius:12px;background:#0d1428}
-.videoTitle{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-bottom:10px}
-.videoTitle h2{margin:0;font-size:20px}
+.guideDialog{width:min(calc(100% - 24px),480px);max-height:calc(100dvh - 24px);padding:20px;background:#1a2945;color:#f4f8ff;border:1px solid #526e92;border-radius:20px;overflow:auto}
+.guideDialog::backdrop{background:#050b18df}
+.guideHeader{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.guideHeader h2{margin:0;font-size:20px}
+.guideHeader button,.guideNav button{min-height:44px;padding:10px 14px}
+.guideStep{margin:16px 0 8px;color:#9cf9d8;font-size:14px;font-weight:800}
+.guideSlide h3{font-size:24px;margin:0}
+.guideSlide p{margin:12px 0}
+.guideExample{border:1px solid #526e92;border-radius:12px;padding:12px;margin:14px 0;background:#101d32}
+.guideExample strong{color:#9cf9d8}
+.guideNav{display:flex;justify-content:space-between;gap:10px;margin-top:18px}
+
 .gameItem{background:#101d35;border:1px solid #465b7b;border-radius:14px;padding:14px;display:grid;gap:9px}
 .gameItem strong{font-size:18px}
 .gameItem small{color:#becce2;font-size:14px}
@@ -95,11 +102,11 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 </head>
 <body>
 <main>
-<div class="toolbar"><a class="homeButton" href="./index.html">Home</a><button id="profileButton" class="secondary" type="button">👤 Profile</button><button id="howTo" class="secondary" type="button">▶ How to Play</button><button id="soundToggle" class="secondary soundToggle" type="button" role="switch" aria-label="Sound" aria-checked="true">Sound <span id="soundState" aria-hidden="true">On</span><span class="soundTrack" aria-hidden="true"></span></button><button id="leave" class="secondary hide">My Games</button></div>
+<div class="toolbar"><a class="homeButton" href="./index.html">Home</a><button id="profileButton" class="secondary" type="button">👤 Profile</button><button id="howTo" class="secondary" type="button">How to Play</button><button id="soundToggle" class="secondary soundToggle" type="button" role="switch" aria-label="Sound" aria-checked="true">Sound <span id="soundState" aria-hidden="true">On</span><span class="soundTrack" aria-hidden="true"></span></button><button id="leave" class="secondary hide">My Games</button></div>
 <h1>Brain<span>Chain</span></h1><p class="small">ONLINE CHALLENGE · TEST VERSION</p>
 <div id="firstTimeTip" class="tutorialTip hide">
- <p><strong>New to BrainChain Online?</strong> Watch our quick cartoon walkthrough before your first game.</p>
- <button id="firstTimeWatch" class="primary" type="button">Watch 22-second tutorial</button>
+ <p><strong>New to BrainChain Online?</strong> Learn the rules with a sample turn.</p>
+ <button id="firstTimeWatch" class="primary" type="button">Start guide</button>
  <button id="dismissTip" class="secondary" type="button">Maybe later</button>
 </div>
 <section id="profilePanel" class="hide">
@@ -118,25 +125,6 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
    <p class="profileAlert small" id="profileMessage" role="status"></p>
   </div>
   <p class="small">Your photo and screen name will be visible to other players. This beta profile is linked to this browser; email account recovery is coming later.</p>
- </div>
- <div class="card stack">
-  <h2>Account</h2>
-  <p id="accountIdentity" class="small" aria-live="polite"></p>
-  <form id="accountEmailForm" class="stack">
-   <label for="accountEmail">Email address</label>
-   <input id="accountEmail" type="email" maxlength="254" autocomplete="email" required>
-   <div class="grid">
-    <button class="primary" type="submit" value="link">Link email</button>
-    <button class="secondary" type="submit" value="signin">Sign in</button>
-   </div>
-  </form>
-  <form id="accountCodeForm" class="stack hide">
-   <label for="accountCode">Verification code</label>
-   <input id="accountCode" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" maxlength="10" required>
-   <button class="primary" type="submit">Verify code</button>
-   <button class="secondary" id="cancelAccountCode" type="button">Back</button>
-  </form>
-  <div id="accountMessage" role="status" class="small"></div>
  </div>
  <div class="card"><h2>Your Player Card</h2><div id="profileStats" class="statGrid"></div><p class="small">Word scores are out of 100; game scores are out of 400. Averages use the new points-based games only.</p></div>
  <div class="card"><h2>Head-to-Head Records</h2><p class="small">Your record against each friend in completed points-based games.</p><div id="rivalStats">Loading your matchups...</div></div>
@@ -192,16 +180,41 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 <p class="small">Beta note: keep this browser tab available during your turn. Text invitations work now; automatic phone notifications are planned later.</p>
 </main>
 <div id="feedbackPop" class="feedbackPop hide" role="status" aria-live="assertive"></div>
-<div id="videoOverlay" class="videoOverlay hide" role="dialog" aria-modal="true" aria-label="How to Play BrainChain Online">
- <div class="videoBox">
-  <div class="videoTitle"><h2>How to Play BrainChain</h2><button id="closeVideo" type="button" aria-label="Close tutorial">✕ Close</button></div>
-  <video id="tutorialVideo" controls playsinline preload="metadata">
-   <source src="./how-to-play.mp4" type="video/mp4">
-   Your browser does not support video playback.
-  </video>
-  <p class="small">Invite a friend. Tap GO! Solve the same word, one turn at a time. First try earns 100 points; each wrong guess costs 20.</p>
+<dialog id="guideDialog" class="guideDialog" aria-labelledby="guideTitle">
+ <div class="guideHeader"><h2 id="guideTitle">How to Play</h2><button id="closeGuide" class="secondary" type="button">Close</button></div>
+ <p id="guideStep" class="guideStep"></p>
+ <section class="guideSlide" hidden>
+  <h3 tabindex="-1">Invite a friend</h3>
+  <p>Tap <strong>Create a challenge</strong>, then tap <strong>Text invitation</strong> or <strong>Copy invitation link</strong>.</p>
+  <p>Your friend taps the link to join. If you send them only the code, they can tap <strong>Enter a code</strong> under My Games.</p>
+ </section>
+ <section class="guideSlide" hidden>
+  <h3 tabindex="-1">Start your turn</h3>
+  <p>Pick your match from <strong>My Games</strong>. When it says <strong>Your turn</strong>, tap <strong>GO!</strong> to reveal your clue.</p>
+  <p>You can both come back to the game later and pick up where you left off.</p>
+ </section>
+ <section class="guideSlide" hidden>
+  <h3 tabindex="-1">Find the next word</h3>
+  <p>The previous word and your answer should form a familiar phrase, in that order. Use the revealed letters and blanks as clues.</p>
+  <div class="guideExample">Previous word <strong>RAIN</strong><br>Clue <strong>B _ _</strong><br>Answer <strong>BOW</strong> makes <strong>RAINBOW</strong></div>
+  <p>Type <strong>BOW</strong> and tap <strong>GUESS</strong>. Now BOW is the previous word. The next player might solve <strong>TIE</strong> to make <strong>BOW TIE</strong>.</p>
+ </section>
+ <section class="guideSlide" hidden>
+  <h3 tabindex="-1">See what a miss costs</h3>
+  <p>A correct first guess earns <strong>100 points</strong>. Each wrong guess reveals another letter and takes <strong>20 points</strong> off that word.</p>
+  <div class="guideExample">Guess <strong>BAG</strong> for <strong>B _ _</strong> and the clue becomes <strong>B O _</strong>. Guess <strong>BOW</strong> now and earn <strong>80 points</strong>.</div>
+  <p>If every letter is revealed, the word ends with <strong>0 points</strong>.</p>
+ </section>
+ <section class="guideSlide" hidden>
+  <h3 tabindex="-1">Finish the chain</h3>
+  <p>You take turns solving the same four words. When you finish a word, your friend gets their turn on that word before the chain moves on.</p>
+  <p>Once both players finish, the higher total wins. Each player can earn up to <strong>400 points</strong>.</p>
+ </section>
+ <div class="guideNav">
+  <button id="guideBack" class="secondary" type="button">Back</button>
+  <button id="guideNext" class="primary" type="button">Next</button>
  </div>
-</div>
+</dialog>
 <script>
 const BASE='https://hsdvkdvimzyyyjdhbtzb.supabase.co';
 const KEY='sb_publishable_r5S0XJMRaDBOXIhiXzslFA_tUYSHuAR';
@@ -236,7 +249,7 @@ async function loadProfile(){
 async function openProfile(){
  profileOpen=true;$('profilePanel').classList.remove('hide');$('lobby').classList.add('hide');$('match').classList.add('hide');$('firstTimeTip').classList.add('hide');
  $('profileMessage').textContent='';window.scrollTo(0,0);
- try{await auth();updateAccountPanel();await loadProfile()}catch(e){$('profileMessage').textContent=e.message||String(e)}
+ try{await loadProfile()}catch(e){$('profileMessage').textContent=e.message||String(e)}
 }
 function closeProfile(){profileOpen=false;$('profilePanel').classList.add('hide');$('lobby').classList.toggle('hide',!!code);$('match').classList.toggle('hide',!code);$('firstTimeTip').classList.add('hide');window.scrollTo(0,0)}
 $('profileButton').onclick=openProfile;$('closeProfile').onclick=closeProfile;
@@ -279,14 +292,32 @@ $('saveProfile').onclick=async()=>{
   await loadProfile();$('profileMessage').textContent='✓ Profile saved!';
  }catch(e){$('profileMessage').textContent=e.message||String(e)}finally{btn.disabled=false}
 };
-function openTutorial(){ $('videoOverlay').classList.remove('hide');$('firstTimeTip').classList.add('hide');localStorage.setItem('bc_tutorial_seen','1');$('tutorialVideo').currentTime=0; }
-function closeTutorial(){ $('tutorialVideo').pause();$('videoOverlay').classList.add('hide') }
+const guide=$('guideDialog');
+const guideSlides=[...guide.querySelectorAll('.guideSlide')];
+let guideIndex=0,guideOpener=null;
+function renderGuide(){
+ guideSlides.forEach((slide,index)=>{slide.hidden=index!==guideIndex});
+ $('guideStep').textContent=(guideIndex+1)+' of '+guideSlides.length;
+ $('guideBack').disabled=guideIndex===0;
+ $('guideNext').textContent=guideIndex===guideSlides.length-1?'Done':'Next';
+ guide.scrollTop=0;
+ guideSlides[guideIndex].querySelector('h3').focus({preventScroll:true});
+}
+function openTutorial(e){
+ guideOpener=e.currentTarget;
+ $('firstTimeTip').classList.add('hide');
+ localStorage.setItem('bc_tutorial_seen','1');
+ guideIndex=0;
+ guide.showModal();
+ renderGuide();
+}
 $('howTo').onclick=openTutorial;
 $('firstTimeWatch').onclick=openTutorial;
 $('dismissTip').onclick=()=>{localStorage.setItem('bc_tutorial_seen','1');$('firstTimeTip').classList.add('hide')};
-$('closeVideo').onclick=closeTutorial;
-$('videoOverlay').addEventListener('click',e=>{if(e.target===$('videoOverlay'))closeTutorial()});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeTutorial()});
+$('closeGuide').onclick=()=>guide.close();
+$('guideBack').onclick=()=>{if(guideIndex>0){guideIndex--;renderGuide()}};
+$('guideNext').onclick=()=>{if(guideIndex===guideSlides.length-1)guide.close();else{guideIndex++;renderGuide()}};
+guide.addEventListener('close',()=>{(guideOpener===$('firstTimeWatch')?$('howTo'):guideOpener)?.focus()});
 if(!localStorage.getItem('bc_tutorial_seen'))$('firstTimeTip').classList.remove('hide');
 let session,code='',game=null,busy=false;
 let soundOn=localStorage.getItem('bc_sound')!=='off',audioCtx=null,feedbackTimer=null;
@@ -342,7 +373,7 @@ const err=e=>{const m=e.message||String(e);$('message').textContent=m;$('gamesSt
 function labels(){try{return JSON.parse(localStorage.getItem('bc_labels')||'{}')}catch(e){return {}}}
 function storeLabel(c,name){const d=labels();d[c]=name;localStorage.setItem('bc_labels',JSON.stringify(d))}
 function safe(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-let authRequest=null, accountChallenge=null;
+let authRequest=null;
 function saveSession(data){
  if(!data?.access_token||!data.refresh_token||!data.user?.id)throw Error('BrainChain could not complete sign-in.');
  const next={...data,expires_at:Math.floor(Date.now()/1000)+(data.expires_in||3600)};
@@ -367,78 +398,6 @@ async function auth(){
  }
  await authRequest;
 }
-function updateAccountPanel(){
- const email=session?.user?.email;
- const linked=!!email&&session.user.is_anonymous!==true;
- $('accountIdentity').textContent=linked?'Signed in as '+email:'Link an email to keep this profile and your games across browsers and the Home Screen app.';
- $('accountEmailForm').querySelector('[value="link"]').hidden=linked;
-}
-async function accountAction(form,work){
- const buttons=[...form.querySelectorAll('button')];
- buttons.forEach(button=>button.disabled=true);
- try{await work()}catch(e){$('accountMessage').textContent=e.message||String(e)}
- finally{buttons.forEach(button=>button.disabled=false)}
-}
-$('accountEmailForm').onsubmit=e=>{
- e.preventDefault();
- const email=$('accountEmail').value.trim();
- const linking=e.submitter?.value==='link';
- accountAction(e.currentTarget,async()=>{
-  if(linking){
-   await auth();
-   if(session.user.email&&session.user.is_anonymous!==true)throw Error('This profile already has a linked email.');
-   await authApi('/user','PUT',{email},session.access_token);
-  }else{
-   await authApi('/otp','POST',{email,create_user:false});
-  }
-  accountChallenge={email,linking,userId:linking?session.user.id:null};
-  $('accountEmailForm').classList.add('hide');
-  $('accountCodeForm').classList.remove('hide');
-  $('accountCode').value='';
-  $('accountMessage').textContent='Enter the code sent to '+email+'.';
-  $('accountCode').focus();
- });
-};
-function resetAccountCode(){
- accountChallenge=null;
- $('accountCode').value='';
- $('accountCodeForm').classList.add('hide');
- $('accountEmailForm').classList.remove('hide');
-}
-$('cancelAccountCode').onclick=()=>{
- resetAccountCode();
- $('accountMessage').textContent='';
-};
-$('accountCodeForm').onsubmit=e=>{
- e.preventDefault();
- if(!accountChallenge)return;
- const {email,linking,userId}=accountChallenge;
- const token=$('accountCode').value.trim();
- accountAction(e.currentTarget,async()=>{
-  if(linking){
-   await auth();
-   if(session.user.id!==userId)throw Error('Return to the profile you started linking.');
-  }
-  const data=await authApi('/verify','POST',{email,token,type:linking?'email_change':'email'});
-  if(linking){
-   if(data?.access_token){
-    if(data.user?.id!==userId)throw Error('The code did not verify this profile.');
-    saveSession(data);
-   }else{
-    const user=await authApi('/user','GET',undefined,session.access_token);
-    if(user?.id!==userId||user.email?.toLowerCase()!==email.toLowerCase()||user.is_anonymous===true)throw Error('Email linking is still pending.');
-    saveSession({...session,user,expires_in:Math.max(1,session.expires_at-Math.floor(Date.now()/1000))});
-   }
-   updateAccountPanel();
-   resetAccountCode();
-   $('accountMessage').textContent='Email linked. Use Sign in with this email from your Home Screen app.';
-  }else{
-   if(authRequest)await authRequest.catch(()=>{});
-   saveSession(data);
-   location.reload();
-  }
- });
-};
 async function rpc(name,params={}){
  await auth();
  let r=await fetch(BASE+'/rest/v1/rpc/'+name,{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+session.access_token,'Content-Type':'application/json'},body:JSON.stringify(params)});
