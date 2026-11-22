@@ -20,6 +20,12 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 .time{font-weight:900;font-size:35px;font-variant-numeric:tabular-nums;color:#91f2d4}
 .score{background:#131e35;border-radius:15px;padding:15px}.score p{margin:0 0 8px}
 .clue{font-size:28px;font-weight:900;letter-spacing:2px;text-align:center;overflow-wrap:anywhere;margin:24px 0}
+.wordChain{display:grid;gap:8px;margin:18px 0 22px}
+.chainLabel{font-weight:850;letter-spacing:1px;color:#abf1d6;font-size:14px;text-transform:uppercase}
+.chainWord{border:2px solid #4d6687;background:#2a3d5e;border-radius:14px;padding:14px 10px;text-align:center;font-weight:900;letter-spacing:3px;font-size:25px;overflow-wrap:anywhere}
+.chainWord.current{border:3px dashed #79f3c7;background:#123f43;color:#90ffdc}
+.chainArrow{text-align:center;font-size:21px;color:#b5c8e6;line-height:1}
+.chainHidden{text-align:center;background:#132036;border-radius:13px;padding:18px;color:#d5e2f4;font-weight:750}
 #answer{font-size:18px;text-transform:uppercase;background:#e9fff7;color:#092a30;border:3px solid #70edc2;font-weight:850;caret-color:#092a30}
 #answer::placeholder{color:#426761;opacity:1}
 #answer:focus{background:#fff;border-color:#9effd9;outline:4px solid #70edc244}
@@ -47,19 +53,57 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 .feedbackPop.good{background:#71f2c4;color:#082b28;border:2px solid #c1ffe6}
 .feedbackPop.bad{background:#ffd0bb;color:#54251c;border:2px solid #fff0dc}
 .feedbackPop:not(.hide){animation:popIn .22s ease-out}
+.profileHead{display:flex;align-items:center;gap:15px;margin:8px 0 22px}
+.profileBadge{width:82px;height:82px;flex:none;border-radius:50%;background:#2b5a65;border:3px solid #86f0cd;display:grid;place-items:center;font-size:43px;overflow:hidden}
+.profileBadge img{height:100%;width:100%;object-fit:cover}
+.profileForm{display:grid;gap:13px}
+.profileForm label{font-weight:800;color:#dbe9ff}
+.avatarChoices{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px}
+.avatarChoices button{padding:4px;min-height:50px;font-size:25px;border:2px solid #546a8a}
+.avatarChoices button.chosen{border-color:#82f5ce;background:#35675e}
+.statGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.statTile{background:#111e35;border-radius:14px;padding:15px 11px}
+.statTile span{font-size:13px;color:#b7cae3;display:block}
+.statTile strong{font-size:27px;color:#8af2d1;display:block;margin-top:5px;font-variant-numeric:tabular-nums}
+.rankingRow{display:flex;gap:12px;align-items:center;justify-content:space-between;border-bottom:1px solid #405273;padding:13px 4px}
+.rankingRow:last-child{border-bottom:0}
+.rankingName{display:flex;align-items:center;gap:9px;min-width:0}
+.rankingName span{font-size:22px}
+.rankingRow strong{font-size:15px}
+.rankingRow small{color:#bfd2e9;display:block}
+.profileAlert{color:#94f1d1;min-height:23px}
+.profileAvatarSmall{width:34px;height:34px;border-radius:50%;object-fit:cover}
+.score p.playerName{display:flex;align-items:center;gap:7px;font-size:14px;min-width:0;overflow-wrap:anywhere}
 @keyframes popIn{from{opacity:0;transform:scale(.9) translateY(-12px)}to{opacity:1;transform:scale(1) translateY(0)}}
 @media(max-width:360px){h1{font-size:34px}.clue{font-size:23px}}
 </style>
 </head>
 <body>
 <main>
-<div class="toolbar"><a href="./index.html" style="color:#b7f4dc;padding:13px 0">← BrainChain Home</a><button id="howTo" class="secondary" type="button">▶ How to Play</button><button id="soundToggle" class="secondary" type="button" aria-pressed="true">🔊 Sound On</button><button id="leave" class="secondary hide">My Games</button></div>
+<div class="toolbar"><a href="./index.html" style="color:#b7f4dc;padding:13px 0">← BrainChain Home</a><button id="profileButton" class="secondary" type="button">👤 Profile</button><button id="howTo" class="secondary" type="button">▶ How to Play</button><button id="soundToggle" class="secondary" type="button" aria-pressed="true">🔊 Sound On</button><button id="leave" class="secondary hide">My Games</button></div>
 <h1>Brain<span>Chain</span></h1><p class="small">ONLINE CHALLENGE · TEST VERSION</p>
 <div id="firstTimeTip" class="tutorialTip hide">
  <p><strong>New to BrainChain Online?</strong> Watch our quick cartoon walkthrough before your first game.</p>
  <button id="firstTimeWatch" class="primary" type="button">Watch 22-second tutorial</button>
  <button id="dismissTip" class="secondary" type="button">Maybe later</button>
 </div>
+<section id="profilePanel" class="hide">
+ <div class="card">
+  <div class="gamesHeader"><h2>Player Profile</h2><button id="closeProfile" class="secondary" type="button">Back to Game</button></div>
+  <div class="profileHead"><div id="profilePreview" class="profileBadge">🧠</div><div><h2 id="profileDisplay" style="margin:0 0 5px">Your player card</h2><p class="small" style="margin:0">Your BrainChain identity</p></div></div>
+  <div class="profileForm">
+   <label for="profileName">Screen name</label><input id="profileName" maxlength="20" placeholder="e.g. LakeLymanJeremy" autocomplete="nickname" spellcheck="false">
+   <label>Choose an avatar</label><div id="avatarChoices" class="avatarChoices"></div>
+   <label for="profilePhoto">Or use your own photo</label><input id="profilePhoto" type="file" accept="image/*" style="font-size:14px;padding:12px" aria-label="Upload profile photo">
+   <button id="removePhoto" class="secondary" type="button">Use selected avatar instead</button>
+   <button id="saveProfile" class="primary full" type="button">Save Profile</button>
+   <p class="profileAlert small" id="profileMessage" role="status"></p>
+  </div>
+  <p class="small">Your photo and screen name will be visible to other players. This beta profile is linked to this browser; email account recovery is coming later.</p>
+ </div>
+ <div class="card"><h2>Your Player Card</h2><div id="profileStats" class="statGrid"></div><p class="small">Times currently reflect actual solving time. Clue-penalty scoring is planned for a future update.</p></div>
+ <div class="card"><h2>Community Leaderboard</h2><p class="small">Lowest average time per word. Players qualify after 10 completed words.</p><div id="profileLeaderboard">Loading...</div></div>
+</section>
 <section id="lobby" class="card stack">
  <h2>Play a friend, one word at a time.</h2>
  <p>Take turns when you're ready. The same puzzle goes to both players. Fastest total time wins.</p>
@@ -77,8 +121,8 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
   <div class="badge" id="statusBadge">Getting game...</div>
   <h2 id="headline" style="margin-top:16px">Your challenge</h2>
   <div class="grid">
-   <div class="score"><p>Your total</p><div class="time" id="mine">0:00.0</div></div>
-   <div class="score"><p>Friend's total</p><div class="time" id="theirs">0:00.0</div></div>
+   <div class="score"><p id="myScoreName" class="playerName">Your total</p><div class="time" id="mine">0:00.0</div></div>
+   <div class="score"><p id="theirScoreName" class="playerName">Friend's total</p><div class="time" id="theirs">0:00.0</div></div>
   </div>
   <p id="turnInfo"></p>
   <div class="stack" id="inviteControls">
@@ -90,9 +134,8 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
    <p><strong>YOUR TURN!</strong> The puzzle appears when you're ready.</p>
    <button id="start" class="primary">GO!</button>
   </div>
+  <div id="chainSection" class="hide"><div class="chainLabel">Your word chain</div><div id="wordChain" class="wordChain" aria-label="Word chain"></div></div>
   <div id="solveControls" class="hide">
-   <div class="clue" id="previous"></div>
-   <div class="clue" id="clue"></div>
    <div class="time" style="text-align:center" id="stopwatch">0:00.0</div>
    <form id="guessForm"><input id="answer" placeholder="Your answer" autocomplete="off" autocapitalize="characters"><button class="primary">GUESS</button></form>
    <div class="toolbar" style="margin-top:14px"><button id="pause" type="button">Pause (2 left)</button></div>
@@ -118,6 +161,65 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 const BASE='https://hsdvkdvimzyyyjdhbtzb.supabase.co';
 const KEY='sb_publishable_r5S0XJMRaDBOXIhiXzslFA_tUYSHuAR';
 const $=id=>document.getElementById(id);
+const AVATARS=['🧠','🦊','🐻','🦉','🐸','🤖','🐙','🦁','🐼','🐯','🐢','🦄'];
+let profileData=null,selectedAvatar='🧠',profilePhotoPath=null,profileFile=null,profileOpen=false,profilePhotoPreview='',lastPlayersFetch=0;
+function avatarUrl(path){return typeof path==='string'&&/^[0-9a-f-]{36}\/avatar\.jpg$/.test(path)?BASE+'/storage/v1/object/public/brainchain-avatars/'+path:null}
+function profilePicture(host,avatar,path){host.replaceChildren();const url=avatarUrl(path);if(url){const img=document.createElement('img');img.src=url+'?v='+Date.now();img.alt='Player photo';host.append(img)}else{host.textContent=avatar||'🧠'}}
+function drawAvatars(){const host=$('avatarChoices');host.replaceChildren();for(const a of AVATARS){const b=document.createElement('button');b.type='button';b.textContent=a;b.className=a===selectedAvatar?'chosen':'';b.setAttribute('aria-label','Select '+a+' avatar');b.setAttribute('aria-pressed',String(a===selectedAvatar));b.onclick=()=>{selectedAvatar=a;profilePhotoPath=null;profileFile=null;$('profilePhoto').value='';if(profilePhotoPreview){URL.revokeObjectURL(profilePhotoPreview);profilePhotoPreview=''};drawAvatars();profilePicture($('profilePreview'),selectedAvatar,null)};host.append(b)}}
+function statTiles(p){const metrics=[['Average / word',p.words?p.averageSeconds+' sec':'—'],['Fastest word',p.words?p.fastestSeconds+' sec':'—'],['Words solved',p.words],['Games played',p.gamesPlayed],['Games won',p.wins],['Win rate',p.completedGames?Math.round(p.wins/p.completedGames*100)+'%':'—'],['Community rank',p.rank?'#'+p.rank:'Unranked']];const area=$('profileStats');area.replaceChildren();for(const [label,val] of metrics){const tile=document.createElement('div');tile.className='statTile';const name=document.createElement('span');name.textContent=label;const value=document.createElement('strong');value.textContent=val;tile.append(name,value);area.append(tile)}}
+async function loadProfile(){
+ const p=await rpc('bc_profile_get');profileData=p;selectedAvatar=p.avatar||'🧠';profilePhotoPath=p.photoPath||null;profileFile=null;
+ $('profileName').value=p.screenName||'';$('profilePhoto').value='';$('profileDisplay').textContent=p.screenName||'Create your player profile';
+ profilePicture($('profilePreview'),selectedAvatar,profilePhotoPath);drawAvatars();statTiles(p);
+ const leaders=await rpc('bc_leaderboard');const host=$('profileLeaderboard');host.replaceChildren();
+ if(!leaders.length){host.textContent='The leaderboard will appear once players have completed 10 words.';return}
+ leaders.forEach(x=>{const row=document.createElement('div');row.className='rankingRow';const left=document.createElement('div');left.className='rankingName';
+ const badge=document.createElement('span');badge.textContent='#'+x.rank;
+ const av=document.createElement('span');const url=avatarUrl(x.photoPath);if(url){const im=document.createElement('img');im.src=url;im.alt='';im.className='profileAvatarSmall';av.append(im)}else{av.textContent=x.avatar||'🧠'}
+ const name=document.createElement('div');const strong=document.createElement('strong');strong.textContent=x.screenName;const more=document.createElement('small');more.textContent=x.words+' words';name.append(strong,more);left.append(badge,av,name);
+ const value=document.createElement('strong');value.textContent=x.averageSeconds+'s';row.append(left,value);host.append(row)})
+}
+async function openProfile(){
+ if(game?.status==='active'&&game.currentPlayer===game.myPlayer&&game.started&&!game.paused){
+  alert('Please finish or pause your timed word before opening Profile.');return;
+ }
+ profileOpen=true;$('profilePanel').classList.remove('hide');$('lobby').classList.add('hide');$('match').classList.add('hide');$('firstTimeTip').classList.add('hide');
+ $('profileMessage').textContent='';window.scrollTo(0,0);
+ try{await loadProfile()}catch(e){$('profileMessage').textContent=e.message||String(e)}
+}
+function closeProfile(){profileOpen=false;$('profilePanel').classList.add('hide');$('lobby').classList.toggle('hide',!!code);$('match').classList.toggle('hide',!code);$('firstTimeTip').classList.add('hide');window.scrollTo(0,0)}
+$('profileButton').onclick=openProfile;$('closeProfile').onclick=closeProfile;
+$('removePhoto').onclick=()=>{profilePhotoPath=null;profileFile=null;$('profilePhoto').value='';profilePicture($('profilePreview'),selectedAvatar,null)};
+$('profilePhoto').onchange=e=>{
+ const f=e.target.files?.[0];if(!f)return;
+ if(f.size>12*1024*1024){$('profileMessage').textContent='Choose a photo smaller than 12 MB.';e.target.value='';return}
+ profileFile=f;if(profilePhotoPreview)URL.revokeObjectURL(profilePhotoPreview);
+ profilePhotoPreview=URL.createObjectURL(f);const host=$('profilePreview');host.replaceChildren();const im=document.createElement('img');im.src=profilePhotoPreview;im.alt='Selected photo';host.append(im);
+};
+async function uploadPhoto(file){
+ let img;
+ try{img=await createImageBitmap(file)}catch(e){
+  const url=URL.createObjectURL(file);
+  try{img=await new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=()=>reject(Error('Could not read this photo'));i.src=url})}
+  finally{URL.revokeObjectURL(url)}
+ }
+ const width=img.width||img.naturalWidth,height=img.height||img.naturalHeight;
+ const size=384,canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;
+ const c=canvas.getContext('2d');const crop=Math.min(width,height);c.drawImage(img,(width-crop)/2,(height-crop)/2,crop,crop,0,0,size,size);img.close?.();
+ const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',.82));if(!blob)throw Error('Unable to prepare photo');
+ const path=session.user.id+'/avatar.jpg';
+ const r=await fetch(BASE+'/storage/v1/object/brainchain-avatars/'+path,{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'image/jpeg','x-upsert':'true'},body:blob});
+ if(!r.ok){const j=await r.json().catch(()=>({}));throw Error(j.message||j.error||'Could not upload photo')}
+ return path;
+}
+$('saveProfile').onclick=async()=>{
+ const btn=$('saveProfile');btn.disabled=true;$('profileMessage').textContent='Saving...';
+ try{await auth();const name=$('profileName').value.trim();if(!/^[A-Za-z][A-Za-z0-9_]{2,19}$/.test(name))throw Error('Use 3–20 letters, numbers or underscores. Start with a letter.');
+  if(profileFile)profilePhotoPath=await uploadPhoto(profileFile);
+  await rpc('bc_profile_save',{p_name:name,p_avatar:selectedAvatar,p_photo:profilePhotoPath});
+  await loadProfile();$('profileMessage').textContent='✓ Profile saved!';
+ }catch(e){$('profileMessage').textContent=e.message||String(e)}finally{btn.disabled=false}
+};
 function openTutorial(){ $('videoOverlay').classList.remove('hide');$('firstTimeTip').classList.add('hide');localStorage.setItem('bc_tutorial_seen','1');$('tutorialVideo').currentTime=0; }
 function closeTutorial(){ $('tutorialVideo').pause();$('videoOverlay').classList.add('hide') }
 $('howTo').onclick=openTutorial;
@@ -217,11 +319,22 @@ function invitation(){return location.origin+location.pathname+'?invite='+encode
 async function show(codeToShow){
  code=String(codeToShow).trim().toUpperCase();history.replaceState(null,'','?invite='+encodeURIComponent(code));
  $('lobby').classList.add('hide');$('match').classList.remove('hide');$('leave').classList.remove('hide');
- await refresh();
+ await refresh();await refreshMatchPlayers();
+}
+async function refreshMatchPlayers(){
+ if(!code||profileOpen)return;
+ try{const p=await rpc('bc_match_players',{p_code:code});const myFirst=game?.myPlayer===1;
+ const mine=myFirst?p.one:p.two,theirs=myFirst?p.two:p.one;
+ const showName=(id,player,fallback)=>{const host=$(id);host.replaceChildren();const path=avatarUrl(player?.photoPath);
+  if(path){const img=document.createElement('img');img.src=path;img.alt='';img.className='profileAvatarSmall';host.append(img)}else{const icon=document.createElement('span');icon.textContent=player?.avatar||'👤';host.append(icon)}
+  const text=document.createElement('span');text.textContent=(player?.name||fallback)+' total';host.append(text)};
+ showName('myScoreName',mine,'Your');showName('theirScoreName',theirs,'Friend');
+ lastPlayersFetch=Date.now();
+ }catch(e){}
 }
 async function refresh(){
  if(!code)return;
- try{const g=await rpc('bc_view',{p_code:code});game=g;render(g)}catch(e){err(e)}
+ try{const g=await rpc('bc_view',{p_code:code});game=g;render(g);if(Date.now()-lastPlayersFetch>20000)refreshMatchPlayers()}catch(e){err(e)}
 }
 function render(g){
  $('statusBadge').textContent=g.status==='completed'?'GAME COMPLETE':g.status==='waiting'?'AWAITING FRIEND':`WORD ${g.wordNumber} OF 4`;
@@ -232,10 +345,23 @@ function render(g){
  $('readyControls').classList.toggle('hide',g.status!=='active'||!myTurn||started);
  $('solveControls').classList.toggle('hide',g.status!=='active'||!myTurn||!started||paused);
  $('pauseScreen').classList.toggle('hide',g.status!=='active'||!myTurn||!started||!paused);
+ const safeToShow=g.status==='completed'||g.status==='active'&&!(myTurn&&started&&paused);
+ $('chainSection').classList.toggle('hide',!safeToShow);
+ if(safeToShow){
+  const chain=$('wordChain');chain.replaceChildren();
+  const words=Array.isArray(g.chainWords)?g.chainWords:[];
+  const addWord=(word,active=false)=>{
+   if(chain.childElementCount){const arrow=document.createElement('div');arrow.className='chainArrow';arrow.textContent='↓';chain.append(arrow)}
+   const box=document.createElement('div');box.className='chainWord'+(active?' current':'');box.textContent=word;chain.append(box);
+  };
+  words.forEach(w=>addWord(w));
+  if(g.status==='active'&&myTurn&&started&&!paused&&g.clue)addWord(g.clue,true);
+  if(!chain.childElementCount){const hidden=document.createElement('div');hidden.className='chainHidden';hidden.textContent='Your chain will appear here.';chain.append(hidden)}
+ }
  $('turnInfo').textContent=g.status==='waiting'?'Share the invitation, then wait for your friend.':g.status==='completed'?'Both players finished!':myTurn?'Your turn — tap GO when ready.':'Waiting for your friend to solve their word.';
  $('headline').textContent=g.status==='completed'?(g.playerOneTime===g.playerTwoTime?'It’s a tie!':(g.myPlayer===1?g.playerOneTime<g.playerTwoTime:g.playerTwoTime<g.playerOneTime)?'You win! 🎉':'Great match!'):'BrainChain Challenge';
  $('inviteCodeLabel').textContent='Invitation code: '+code;
- if(started&&myTurn){$('previous').textContent=g.previousWord||'';$('clue').textContent=g.clue||'';clockOffset=g.turnTime||0;localTick=Date.now()}
+ if(started&&myTurn){clockOffset=g.turnTime||0;localTick=Date.now()}
  $('stopwatch').textContent=time(clockOffset);
  $('pause').textContent=`Pause (${2-g.pausesUsed} left)`;
  $('pause').disabled=g.pausesUsed>=2;
@@ -259,7 +385,7 @@ $('guessForm').onsubmit=e=>{
   else{showFeedback(false,'Not quite! Another letter revealed.')}
  });
 };
-$('share').onclick=async()=>{const url=invitation();if(navigator.share){try{await navigator.share({title:'BrainChain Challenge',text:'I challenge you to BrainChain! Join my game:',url})}catch(e){}}else{await navigator.clipboard.writeText(url);$('message').textContent='Invitation link copied'}};
+$('share').onclick=async()=>{const url=invitation();let text='I challenge you to BrainChain!';try{const p=await rpc('bc_profile_get');if(p.screenName)text=p.screenName+' challenges you to BrainChain! 🧠'+(p.words?' Career: '+p.wins+' wins · '+p.averageSeconds+'s per word.':'')}catch(e){}if(navigator.share){try{await navigator.share({title:'BrainChain Challenge',text,url})}catch(e){}}else{await navigator.clipboard.writeText(text+' '+url);$('message').textContent='Invitation copied'}};
 $('copy').onclick=async()=>{try{await navigator.clipboard.writeText(invitation());$('message').textContent='Invitation link copied'}catch(e){$('message').textContent=invitation()}};
 $('leave').onclick=()=>{
  code='';game=null;history.replaceState(null,'',location.pathname);
@@ -270,7 +396,7 @@ $('refreshGames').onclick=loadGames;
 setInterval(()=>{if(game?.started&&!game.paused&&game.currentPlayer===game.myPlayer)$('stopwatch').textContent=time(clockOffset+Date.now()-localTick)},100);
 setInterval(refresh,5000);
 setInterval(loadGames,15000);
-(async()=>{try{await auth();let c=new URLSearchParams(location.search).get('invite');if(c){await rpc('brainchain_join_game',{p_code:c}).catch(async()=>{let g=await rpc('bc_view',{p_code:c});if(!g)throw Error('Could not join')});await show(c)}else{await loadGames()}}catch(e){err(e)}})();
+(async()=>{try{await auth();let c=new URLSearchParams(location.search).get('invite');if(c){await rpc('brainchain_join_game',{p_code:c}).catch(async()=>{let g=await rpc('bc_view',{p_code:c});if(!g)throw Error('Could not join')});await show(c)}else{await loadGames();if(location.hash==='#profile')await openProfile()}}catch(e){err(e)}})();
 </script>
 </body>
 </html>
