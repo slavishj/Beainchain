@@ -61,6 +61,12 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 .guideSlide p{margin:12px 0}
 .guideExample{border:1px solid #526e92;border-radius:12px;padding:12px;margin:14px 0;background:#101d32}
 .guideExample strong{color:#9cf9d8}
+.guideMockLabel{margin:8px 0;color:#bac9e4;font-weight:700}
+.guideCallout,.guideGuess,.guideScoreRow{display:flex;align-items:center;gap:8px;margin:10px 0}
+.guideCallout>span,.guidePointer{color:#ffe18a;font-size:24px;font-weight:900}
+.guideCallout>strong,.guideExample .guideMockButton{display:inline-block;padding:9px 12px;border-radius:10px;background:#7be9c3;color:#09272a}
+.guideEntry{flex:1;min-width:0;padding:9px 10px;border:1px solid #677895;border-radius:10px;font-weight:900}
+.guideScoreRow{justify-content:space-between}
 .guideNav{display:flex;justify-content:space-between;gap:10px;margin-top:18px}
 
 .gameItem{background:#101d35;border:1px solid #465b7b;border-radius:14px;padding:14px;display:grid;gap:9px}
@@ -185,30 +191,57 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
  <p id="guideStep" class="guideStep"></p>
  <section class="guideSlide" hidden>
   <h3 tabindex="-1">Invite a friend</h3>
-  <p>Tap <strong>Create a challenge</strong>, then tap <strong>Text invitation</strong> or <strong>Copy invitation link</strong>.</p>
-  <p>Your friend taps the link to join. If you send them only the code, they can tap <strong>Enter a code</strong> under My Games.</p>
+  <p>Tap <strong>Create a challenge</strong>. Then send your friend the link.</p>
+  <div class="guideExample">
+   <div class="guideMockLabel">My Games</div>
+   <div class="guideCallout"><span aria-hidden="true">→</span><strong>Create a challenge</strong></div>
+   <div class="guideMockLabel">Your challenge</div>
+   <div class="guideCallout"><span aria-hidden="true">→</span><strong>Text invitation</strong></div>
+  </div>
+  <p>Your friend taps the link to join. You can also use <strong>Copy invitation link</strong> to share it.</p>
  </section>
  <section class="guideSlide" hidden>
   <h3 tabindex="-1">Start your turn</h3>
-  <p>Pick your match from <strong>My Games</strong>. When it says <strong>Your turn</strong>, tap <strong>GO!</strong> to reveal your clue.</p>
-  <p>You can both come back to the game later and pick up where you left off.</p>
+  <p>In <strong>My Games</strong>, find a game that says <strong>Your turn</strong>.</p>
+  <div class="guideExample">
+   <div class="guideMockLabel">Game 1 · Your turn</div>
+   <div class="guideCallout"><span aria-hidden="true">→</span><strong>Open game</strong></div>
+   <div class="guideMockLabel">Your turn</div>
+   <div class="guideCallout"><span aria-hidden="true">→</span><strong>GO!</strong></div>
+  </div>
+  <p>Tap <strong>Open game</strong>, then <strong>GO!</strong> to see your clue.</p>
  </section>
  <section class="guideSlide" hidden>
-  <h3 tabindex="-1">Find the next word</h3>
-  <p>The previous word and your answer should form a familiar phrase, in that order. Use the revealed letters and blanks as clues.</p>
-  <div class="guideExample">Previous word <strong>RAIN</strong><br>Clue <strong>B _ _</strong><br>Answer <strong>BOW</strong> makes <strong>RAINBOW</strong></div>
-  <p>Type <strong>BOW</strong> and tap <strong>GUESS</strong>. Now BOW is the previous word. The next player might solve <strong>TIE</strong> to make <strong>BOW TIE</strong>.</p>
+  <h3 tabindex="-1">Connect the words</h3>
+  <p>Find a word that goes after <strong>RAIN</strong>. It starts with <strong>B</strong> and has three letters.</p>
+  <div class="guideExample">
+   <div class="guideMockLabel">Start with</div>
+   <div class="chainWord">RAIN</div>
+   <div class="chainArrow" aria-hidden="true">↓</div>
+   <div class="chainWord current" aria-label="B followed by two blanks">B _ _</div>
+   <div class="guideGuess"><span class="guideEntry">BOW</span><span class="guidePointer" aria-hidden="true">→</span><strong class="guideMockButton">GUESS</strong></div>
+  </div>
+  <p>Type <strong>BOW</strong> and tap <strong>GUESS</strong>. <strong>RAIN + BOW = RAINBOW</strong>.</p>
  </section>
  <section class="guideSlide" hidden>
-  <h3 tabindex="-1">See what a miss costs</h3>
-  <p>A correct first guess earns <strong>100 points</strong>. Each wrong guess reveals another letter and takes <strong>20 points</strong> off that word.</p>
-  <div class="guideExample">Guess <strong>BAG</strong> for <strong>B _ _</strong> and the clue becomes <strong>B O _</strong>. Guess <strong>BOW</strong> now and earn <strong>80 points</strong>.</div>
-  <p>If every letter is revealed, the word ends with <strong>0 points</strong>.</p>
+  <h3 tabindex="-1">Try again if you miss</h3>
+  <p>Get it on your first try and earn <strong>100 points</strong>. Each miss shows another letter and costs <strong>20 points</strong>.</p>
+  <div class="guideExample">
+   <div class="guideScoreRow"><span>B _ _</span><strong>Worth 100 points</strong></div>
+   <div class="guideMockLabel">↓ You guessed BAG</div>
+   <div class="guideScoreRow"><span>B O _</span><strong>Worth 80 points</strong></div>
+  </div>
+  <p>Guess <strong>BOW</strong> now and earn <strong>80 points</strong>. If all the letters are shown, the word earns <strong>0 points</strong>.</p>
  </section>
  <section class="guideSlide" hidden>
   <h3 tabindex="-1">Finish the chain</h3>
-  <p>You take turns solving the same four words. When you finish a word, your friend gets their turn on that word before the chain moves on.</p>
-  <p>Once both players finish, the higher total wins. Each player can earn up to <strong>400 points per chain</strong>.</p>
+  <p>Your friend gets a turn on the same word. Then you both move on to the next word.</p>
+  <div class="guideExample">
+   <div class="guideScoreRow"><span>You</span><strong>340 points</strong></div>
+   <div class="guideScoreRow"><span>Friend</span><strong>300 points</strong></div>
+   <div class="guideMockLabel">You win!</div>
+  </div>
+  <p>After four words each, the higher total wins. Each player can earn up to <strong>400 points per chain</strong>.</p>
  </section>
  <div class="guideNav">
   <button id="guideBack" class="secondary" type="button">Back</button>
