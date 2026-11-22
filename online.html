@@ -323,11 +323,11 @@ async function loadProfile(){
  row.append(left,averages);rivalHost.append(row)});
 }
 async function openProfile(){
- profileOpen=true;$('profilePanel').classList.remove('hide');$('lobby').classList.add('hide');$('match').classList.add('hide');$('firstTimeTip').classList.add('hide');
+ profileOpen=true;$('profileButton').classList.add('hide');$('profilePanel').classList.remove('hide');$('lobby').classList.add('hide');$('match').classList.add('hide');$('firstTimeTip').classList.add('hide');
  $('profileMessage').textContent='';window.scrollTo(0,0);
  try{await loadProfile()}catch(e){$('profileMessage').textContent=e.message||String(e)}
 }
-function closeProfile(){profileOpen=false;$('profilePanel').classList.add('hide');$('lobby').classList.toggle('hide',!!code);$('match').classList.toggle('hide',!code);$('firstTimeTip').classList.add('hide');window.scrollTo(0,0)}
+function closeProfile(){profileOpen=false;$('profileButton').classList.remove('hide');$('profilePanel').classList.add('hide');$('lobby').classList.toggle('hide',!!code);$('match').classList.toggle('hide',!code);$('firstTimeTip').classList.add('hide');window.scrollTo(0,0)}
 $('profileButton').onclick=openProfile;$('closeProfile').onclick=closeProfile;
 $('removePhoto').onclick=()=>{profilePhotoPath=null;profileFile=null;$('profilePhoto').value='';$('cameraPhoto').value='';profilePicture($('profilePreview'),selectedAvatar,null)};
 $('choosePhoto').onclick=()=>$('profilePhoto').click();
