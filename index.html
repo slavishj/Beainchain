@@ -20,8 +20,9 @@ body.typing .guessbox button{padding:12px}
 .homeScreen .top{justify-content:center;padding:24px 0 8px}
 .homeScreen .logo{font-size:clamp(40px,10vw,57px);letter-spacing:-2px}
 .homeScreen .tag,.homeScreen .pill{display:none}
+.tag{display:none}
 #homeMenu{padding:18px 0 35px;text-align:center}
-#homeMenu .homeTagline{font-size:16px;color:#bac9e3;margin:4px 0 36px;letter-spacing:.2px}
+#homeMenu .modeList{margin-top:24px}
 #homeMenu .modeList{display:grid;gap:13px}
 #homeMenu .modeButton{width:100%;display:flex;gap:16px;align-items:center;text-align:left;background:#202f4c;border:1px solid #4a5e81;border-radius:22px;padding:20px;min-height:108px;box-shadow:0 8px 20px #0002}
 #homeMenu .modeButton:focus-visible{outline:3px solid #80f4ca;outline-offset:3px}
@@ -37,6 +38,10 @@ body.typing .guessbox button{padding:12px}
 #homeMenu .modeCopy strong{font-family:ui-rounded,'Arial Rounded MT Bold','Trebuchet MS',system-ui,sans-serif;font-size:clamp(23px,6vw,29px);font-weight:1000;letter-spacing:-1.1px;line-height:1.05;text-shadow:0 2px 0 #0b18334d}
 #homeMenu .modeCopy small{font-family:ui-rounded,'Trebuchet MS',system-ui,sans-serif;font-size:15px;letter-spacing:.05px;line-height:1.4}
 #homeMenu .modeButton:active{transform:scale(.985)}
+.profileEntry{display:none;position:absolute;right:0;top:16px;width:46px;height:46px;align-items:center;justify-content:center;border:1px solid #7792b5;border-radius:50%;background:#304664;color:#f6fff9;font-size:24px;text-decoration:none}
+.homeScreen .profileEntry{display:flex}
+.top{position:relative}
+@media(max-width:410px){.homeScreen .logo{font-size:39px}.homeScreen .top{justify-content:flex-start;padding-right:54px}}
 #setup>h1,#setup>p{display:none}
 #setup>.panel{margin-top:30px}
 #setup #startHelp{display:none}
@@ -99,7 +104,6 @@ if(window.visualViewport){const adjust=()=>{const v=window.visualViewport;const 
 const homeMenu=document.createElement('section');
 homeMenu.id='homeMenu';
 homeMenu.innerHTML=`
- <div class="homeTagline">Family Game Night Just Got Smarter.</div>
  <div class="modeList">
   <button type="button" id="chooseSolo" class="modeButton"><span class="modeIcon" aria-hidden="true">🧠</span><span class="modeCopy"><strong>Solo Play</strong><small>Challenge yourself. Play at your pace.</small></span><span class="modeChevron" aria-hidden="true">›</span></button>
   <button type="button" id="chooseParty" class="modeButton"><span class="modeIcon" aria-hidden="true">👥</span><span class="modeCopy"><strong>Pass &amp; Play</strong><small>Play together on one phone.</small></span><span class="modeChevron" aria-hidden="true">›</span></button>
@@ -107,6 +111,7 @@ homeMenu.innerHTML=`
  </div>
  <div class="homeFooter">Pick a mode to begin</div>`;
 document.querySelector('#setup').before(homeMenu);
+const profileEntry=document.createElement('a');profileEntry.href='./online.html#profile';profileEntry.className='profileEntry';profileEntry.textContent='👤';profileEntry.setAttribute('aria-label','Open Player Profile');profileEntry.title='Your Player Profile';document.querySelector('.top').append(profileEntry);
 document.querySelector('#setup .panel').insertAdjacentHTML('afterbegin','<button type="button" class="homeNav" id="setupBack" style="margin-bottom:20px">‹ Back</button>');
 document.querySelector('#setup .panel h2').textContent='Pass & Play';
 document.querySelector('#setupHelp').textContent='Choose your teams, then start playing.';
