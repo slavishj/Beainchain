@@ -91,6 +91,10 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 .profileHead{display:flex;align-items:center;gap:15px;margin:8px 0 22px}
 .profileBadge{width:82px;height:82px;flex:none;border-radius:50%;background:#2b5a65;border:3px solid #86f0cd;display:grid;place-items:center;font-size:43px;overflow:hidden}
 .profileBadge img{height:100%;width:100%;object-fit:cover}
+.profileIdentity{min-width:0}
+.profileNameRow{display:flex;align-items:center;gap:5px}
+.profileNameRow h2{margin:0;overflow-wrap:anywhere}
+.profileEditButton{min-height:44px;min-width:44px;padding:0;background:none;color:#a4f6d8;font-size:22px}
 .profileForm{display:grid;gap:13px}
 .profileForm label{font-weight:800;color:#dbe9ff}
 .avatarChoices{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px}
@@ -116,7 +120,7 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 .rankingName span{font-size:22px}
 .rankingRow strong{font-size:15px}
 .rankingRow small{color:#bfd2e9;display:block}
-.profileAlert{color:#94f1d1;min-height:23px}
+.profileAlert{color:#94f1d1;margin:12px 0 0}.profileAlert:empty{display:none}
 .profileAvatarSmall{width:34px;height:34px;border-radius:50%;object-fit:cover}
 .score p.playerName{display:flex;align-items:center;gap:7px;font-size:14px;min-width:0;overflow-wrap:anywhere}
 @keyframes popIn{from{opacity:0;transform:scale(.9) translateY(-12px)}to{opacity:1;transform:scale(1) translateY(0)}}
@@ -135,8 +139,16 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 <section id="profilePanel" class="hide">
  <div class="card">
   <div class="gamesHeader"><h2>Player Profile</h2><button id="closeProfile" class="secondary" type="button">Back to Game</button></div>
-  <div class="profileHead"><div id="profilePreview" class="profileBadge">🧠</div><div><h2 id="profileDisplay" style="margin:0 0 5px">Your player card</h2><p class="small" style="margin:0">Your BrainChain identity</p></div></div>
-  <div class="profileForm">
+  <div class="profileHead">
+   <div id="profilePreview" class="profileBadge">🧠</div>
+   <div class="profileIdentity">
+    <div class="profileNameRow">
+     <h2 id="profileDisplay">Your player card</h2>
+     <button id="editProfile" class="profileEditButton" type="button" aria-label="Edit profile" aria-expanded="false" aria-controls="profileEditor" disabled>✎</button>
+    </div>
+   </div>
+  </div>
+  <div id="profileEditor" class="profileForm hide">
    <label for="profileName">Screen name</label><input id="profileName" maxlength="20" placeholder="e.g. LakeLymanJeremy" autocomplete="nickname" spellcheck="false">
    <div class="stack">
     <button id="choosePhoto" class="secondary" type="button">Choose Photo</button>
@@ -147,8 +159,9 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
    <input id="profilePhoto" type="file" accept="image/*" class="hide" aria-label="Choose a photo from your library">
    <input id="cameraPhoto" type="file" accept="image/*" capture="environment" class="hide" aria-label="Take a new photo with the camera">
    <button id="saveProfile" class="primary full" type="button">Save Profile</button>
-   <p class="profileAlert small" id="profileMessage" role="status"></p>
+   <button id="cancelProfileEdit" class="secondary full" type="button">Cancel</button>
   </div>
+  <p class="profileAlert small" id="profileMessage" role="status"></p>
   <p class="small">Your photo and screen name will be visible to other players. This beta profile is linked to this browser; email account recovery is coming later.</p>
  </div>
  <div class="card"><h2>Your Player Card</h2><div id="profileStats" class="statGrid"></div><p class="small">Word scores are out of 100; game scores are out of 400. Averages use the new points-based games only.</p></div>
@@ -311,10 +324,15 @@ async function openPlayerCard(name,picture){
   if(request===playerCardRequest&&playerCard.open)$('playerCardMessage').textContent='Player stats are unavailable right now.';
  }
 }
-async function loadProfile(){
- const p=await rpc('bc_profile_get');profileData=p;selectedAvatar=p.avatar||'🧠';profilePhotoPath=p.photoPath||null;profileFile=null;
+function renderProfileIdentity(p){
+ profileData=p;selectedAvatar=p.avatar||'🧠';profilePhotoPath=p.photoPath||null;profileFile=null;
+ if(profilePhotoPreview){URL.revokeObjectURL(profilePhotoPreview);profilePhotoPreview=''}
  $('profileName').value=p.screenName||'';$('profilePhoto').value='';$('cameraPhoto').value='';$('profileDisplay').textContent=p.screenName||'Create your player profile';
- profilePicture($('profilePreview'),selectedAvatar,profilePhotoPath);drawAvatars();statTiles(p);
+ profilePicture($('profilePreview'),selectedAvatar,profilePhotoPath);drawAvatars();
+ $('editProfile').disabled=false;
+}
+async function loadProfile(){
+ const p=await rpc('bc_profile_get');renderProfileIdentity(p);statTiles(p);
  const leaders=await rpc('bc_leaderboard');const host=$('profileLeaderboard');host.replaceChildren();
  if(!leaders.length){host.textContent='The leaderboard will appear once players have completed 10 scored words.'}
  leaders.forEach(x=>{const row=document.createElement('div');row.className='rankingRow';const left=document.createElement('div');left.className='rankingName';
@@ -351,13 +369,33 @@ function showAvatarChoices(show){
  $('chooseAvatar').setAttribute('aria-expanded',String(show));
 }
 $('chooseAvatar').onclick=()=>showAvatarChoices($('avatarChoices').classList.contains('hide'));
+function setProfileEditing(editing){
+ $('profileEditor').classList.toggle('hide',!editing);
+ $('editProfile').setAttribute('aria-expanded',String(editing));
+ if(!editing)showAvatarChoices(false);
+}
+function cancelProfileEdit(){
+ if(!profileData||$('saveProfile').disabled)return;
+ renderProfileIdentity(profileData);
+ setProfileEditing(false);
+ $('profileMessage').textContent='';
+ $('editProfile').focus();
+}
+$('editProfile').onclick=()=>{
+ if(!$('profileEditor').classList.contains('hide')){cancelProfileEdit();return}
+ setProfileEditing(true);
+ $('profileMessage').textContent='';
+ $('profileName').focus();
+};
+$('cancelProfileEdit').onclick=cancelProfileEdit;
 async function openProfile(){
- showAvatarChoices(false);
+ setProfileEditing(false);
+ $('editProfile').disabled=true;
  profileOpen=true;$('profileButton').classList.add('hide');$('profilePanel').classList.remove('hide');$('lobby').classList.add('hide');$('match').classList.add('hide');$('firstTimeTip').classList.add('hide');
  $('profileMessage').textContent='';window.scrollTo(0,0);
  try{await loadProfile()}catch(e){$('profileMessage').textContent=e.message||String(e)}
 }
-function closeProfile(){profileOpen=false;$('profileButton').classList.remove('hide');$('profilePanel').classList.add('hide');$('lobby').classList.toggle('hide',!!code);$('match').classList.toggle('hide',!code);$('firstTimeTip').classList.add('hide');window.scrollTo(0,0)}
+function closeProfile(){if($('saveProfile').disabled)return;setProfileEditing(false);profileOpen=false;$('profileButton').classList.remove('hide');$('profilePanel').classList.add('hide');$('lobby').classList.toggle('hide',!!code);$('match').classList.toggle('hide',!code);$('firstTimeTip').classList.add('hide');window.scrollTo(0,0)}
 $('profileButton').onclick=openProfile;$('closeProfile').onclick=closeProfile;
 $('choosePhoto').onclick=()=>$('profilePhoto').click();
 $('takePhoto').onclick=()=>$('cameraPhoto').click();
@@ -394,7 +432,10 @@ $('saveProfile').onclick=async()=>{
  try{await auth();const name=$('profileName').value.trim();if(!/^[A-Za-z][A-Za-z0-9_]{2,19}$/.test(name))throw Error('Use 3–20 letters, numbers or underscores. Start with a letter.');
   if(profileFile)profilePhotoPath=await uploadPhoto(profileFile);
   await rpc('bc_profile_save',{p_name:name,p_avatar:selectedAvatar,p_photo:profilePhotoPath});
-  await loadProfile();$('profileMessage').textContent='✓ Profile saved!';
+  renderProfileIdentity({...profileData,screenName:name,avatar:selectedAvatar,photoPath:profilePhotoPath});
+  setProfileEditing(false);
+  $('editProfile').focus();
+  $('profileMessage').textContent='✓ Profile saved!';
  }catch(e){$('profileMessage').textContent=e.message||String(e)}finally{btn.disabled=false}
 };
 const guide=$('guideDialog');
