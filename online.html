@@ -35,10 +35,20 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 .alert{color:#f9d894;min-height:24px}
 #pauseScreen{background:#111a2e;text-align:center;padding:60px 20px;border-radius:20px}
 #guessForm{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+#gamesStatus:empty{display:none}
+.lobbyRules{margin:0;padding-inline-start:1.25em;color:#bac9e4;line-height:1.5}
+.lobbyRules li+li{margin-top:4px}
 .manualJoin summary{width:fit-content;padding:10px 0;color:#b7f4dc;cursor:pointer}
 .manualJoin .stack{margin-top:6px}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between}
 .toolbar button{min-height:42px;padding:10px 14px}
+.toolbar .soundToggle{display:inline-flex;align-items:center;gap:8px;min-height:44px}
+#soundState{min-width:2ch;text-align:center;color:#d6deef}
+.soundTrack{width:34px;height:20px;padding:3px;border-radius:12px;background:#64748b;display:inline-flex;align-items:center}
+.soundTrack::before{content:'';width:14px;height:14px;border-radius:50%;background:white}
+.soundToggle[aria-checked="true"] .soundTrack{background:#7be9c3;justify-content:flex-end}
+.soundToggle[aria-checked="true"] .soundTrack::before{background:#163848}
+.soundToggle[aria-checked="true"] #soundState{color:#9cf9d8}
 .tutorialTip{background:#254c50;border:1px solid #6fe3be;border-radius:16px;padding:14px;margin:14px 0;display:grid;gap:9px}
 .tutorialTip p{margin:0;color:#e3fff5}
 .videoOverlay{position:fixed;inset:0;background:#050b18ed;z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px}
@@ -85,7 +95,7 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 </head>
 <body>
 <main>
-<div class="toolbar"><a class="homeButton" href="./index.html">Home</a><button id="profileButton" class="secondary" type="button">👤 Profile</button><button id="howTo" class="secondary" type="button">▶ How to Play</button><button id="soundToggle" class="secondary" type="button" aria-pressed="true">🔊 Sound On</button><button id="leave" class="secondary hide">My Games</button></div>
+<div class="toolbar"><a class="homeButton" href="./index.html">Home</a><button id="profileButton" class="secondary" type="button">👤 Profile</button><button id="howTo" class="secondary" type="button">▶ How to Play</button><button id="soundToggle" class="secondary soundToggle" type="button" role="switch" aria-label="Sound" aria-checked="true">Sound <span id="soundState" aria-hidden="true">On</span><span class="soundTrack" aria-hidden="true"></span></button><button id="leave" class="secondary hide">My Games</button></div>
 <h1>Brain<span>Chain</span></h1><p class="small">ONLINE CHALLENGE · TEST VERSION</p>
 <div id="firstTimeTip" class="tutorialTip hide">
  <p><strong>New to BrainChain Online?</strong> Watch our quick cartoon walkthrough before your first game.</p>
@@ -114,8 +124,13 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
  <div class="card"><h2>Community Leaderboard</h2><p class="small">Highest average word score. Players qualify after 10 scored words.</p><div id="profileLeaderboard">Loading...</div></div>
 </section>
 <section id="lobby" class="card stack">
- <h2>Play a friend, one word at a time.</h2>
- <p>Take turns whenever you're ready. Both players solve the same chain. Earn up to 100 points per word; highest total wins.</p>
+ <h2>play a friend</h2>
+ <ul class="lobbyRules">
+  <li>Take turns.</li>
+  <li>Both players solve the same chain.</li>
+  <li>Earn up to 100 points per word.</li>
+  <li>Highest total wins.</li>
+ </ul>
  <div class="gamesHeader"><h2>My Games</h2><button type="button" id="refreshGames">Refresh</button></div>
  <p class="small" id="gamesStatus">Loading your games...</p>
  <div id="gamesList" class="gameList"></div>
@@ -257,8 +272,8 @@ if(!localStorage.getItem('bc_tutorial_seen'))$('firstTimeTip').classList.remove(
 let session,code='',game=null,busy=false;
 let soundOn=localStorage.getItem('bc_sound')!=='off',audioCtx=null,feedbackTimer=null;
 function soundButton(){
- $('soundToggle').textContent=soundOn?'🔊 Sound On':'🔇 Sound Off';
- $('soundToggle').setAttribute('aria-pressed',String(soundOn));
+ $('soundState').textContent=soundOn?'On':'Off';
+ $('soundToggle').setAttribute('aria-checked',String(soundOn));
 }
 function unlockAudio(){
  if(!soundOn)return;
@@ -330,20 +345,31 @@ async function loadGames(){
  if(!$('match').classList.contains('hide'))return;
  try{
   await auth();
-  const r=await fetch(BASE+'/rest/v1/brainchain_games?select=invite_code,status,current_player,player_one_id,player_two_id,word_number,created_at&order=created_at.desc&limit=50',{
+  const r=await fetch(BASE+'/rest/v1/brainchain_games?select=invite_code,status,current_player,player_one_id,player_two_id,word_number,created_at&order=created_at.desc,invite_code.desc&limit=50',{
    headers:{apikey:KEY,Authorization:'Bearer '+session.access_token}
   });
   if(!r.ok)throw Error('Could not load your games');
   const items=await r.json();
-  $('gamesStatus').textContent=items.length?'Choose any game to continue.':'No games yet. Create your first challenge below.';
+  $('gamesStatus').textContent=items.length?'':'No games yet. Create your first challenge below.';
   $('gamesList').innerHTML='';
   const names=labels();
-  items.forEach(g=>{
+  items.forEach((g,index)=>{
    const mine=g.player_one_id===session.user.id?1:2;
-   const status=g.status==='completed'?'Completed':g.status==='waiting'?'Waiting for friend':g.current_player===mine?'Your turn':'Friend’s turn';
-   const label=names[g.invite_code]||'Game '+g.invite_code.slice(0,6);
+   const friendTurn=g.status==='active'&&g.current_player!==mine;
+   const status=g.status==='completed'?'Completed':g.status==='waiting'?'Waiting for friend':friendTurn?'Friend’s turn':'Your turn';
+   const progress=g.status==='active'?' · Word '+Math.min(4,g.word_number)+' of 4':'';
+   const label=names[g.invite_code]||'Game '+(items.length-index);
    const item=document.createElement('div');item.className='gameItem';
-   item.innerHTML='<strong>'+safe(label)+'</strong><small>'+safe(status)+(g.status==='active'?' · Word '+Math.min(4,g.word_number)+' of 4':'')+'</small>';
+   item.innerHTML='<strong>'+safe(label)+'</strong><small></small>';
+   const statusLine=item.querySelector('small');
+   statusLine.textContent=status+progress;
+   if(friendTurn){
+    rpc('bc_match_players',{p_code:g.invite_code}).then(players=>{
+     const friend=mine===1?players?.two:players?.one;
+     const name=friend?.name?.trim();
+     if(name)statusLine.textContent=name+'’s turn'+progress;
+    }).catch(()=>{});
+   }
    const controls=document.createElement('div');controls.className='toolbar';
    const open=document.createElement('button');open.className='primary';open.textContent='Open game';open.onclick=()=>show(g.invite_code);
    const rename=document.createElement('button');rename.className='secondary';rename.textContent='Name game';
