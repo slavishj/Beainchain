@@ -25,13 +25,25 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 #guessForm{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between}
 .toolbar button{min-height:42px;padding:10px 14px}
+.tutorialTip{background:#254c50;border:1px solid #6fe3be;border-radius:16px;padding:14px;margin:14px 0;display:grid;gap:9px}
+.tutorialTip p{margin:0;color:#e3fff5}
+.videoOverlay{position:fixed;inset:0;background:#050b18ed;z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px}
+.videoBox{width:min(100%,480px);background:#1a2945;border:1px solid #526e92;border-radius:20px;padding:14px;max-height:94dvh;overflow:auto}
+.videoBox video{display:block;width:100%;max-height:76dvh;object-fit:contain;border-radius:12px;background:#0d1428}
+.videoTitle{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-bottom:10px}
+.videoTitle h2{margin:0;font-size:20px}
 @media(max-width:360px){h1{font-size:34px}.clue{font-size:23px}}
 </style>
 </head>
 <body>
 <main>
-<div class="toolbar"><a href="./index.html" style="color:#b7f4dc;padding:13px 0">← BrainChain Home</a><button id="leave" class="secondary hide">Leave game</button></div>
+<div class="toolbar"><a href="./index.html" style="color:#b7f4dc;padding:13px 0">← BrainChain Home</a><button id="howTo" class="secondary" type="button">▶ How to Play</button><button id="leave" class="secondary hide">Leave game</button></div>
 <h1>Brain<span>Chain</span></h1><p class="small">ONLINE CHALLENGE · TEST VERSION</p>
+<div id="firstTimeTip" class="tutorialTip hide">
+ <p><strong>New to BrainChain Online?</strong> Watch our quick cartoon walkthrough before your first game.</p>
+ <button id="firstTimeWatch" class="primary" type="button">Watch 22-second tutorial</button>
+ <button id="dismissTip" class="secondary" type="button">Maybe later</button>
+</div>
 <section id="lobby" class="card stack">
  <h2>Play a friend, one word at a time.</h2>
  <p>Take turns when you're ready. The same puzzle goes to both players. Fastest total time wins.</p>
@@ -71,10 +83,29 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 </section>
 <p class="small">Beta note: keep this browser tab available during your turn. Text invitations work now; automatic phone notifications are planned later.</p>
 </main>
+<div id="videoOverlay" class="videoOverlay hide" role="dialog" aria-modal="true" aria-label="How to Play BrainChain Online">
+ <div class="videoBox">
+  <div class="videoTitle"><h2>How to Play BrainChain</h2><button id="closeVideo" type="button" aria-label="Close tutorial">✕ Close</button></div>
+  <video id="tutorialVideo" controls playsinline preload="metadata">
+   <source src="./how-to-play.mp4" type="video/mp4">
+   Your browser does not support video playback.
+  </video>
+  <p class="small">Invite a friend. Tap Start. Solve the same word. Take turns. Lowest total time wins!</p>
+ </div>
+</div>
 <script>
 const BASE='https://hsdvkdvimzyyyjdhbtzb.supabase.co';
 const KEY='sb_publishable_r5S0XJMRaDBOXIhiXzslFA_tUYSHuAR';
 const $=id=>document.getElementById(id);
+function openTutorial(){ $('videoOverlay').classList.remove('hide');$('firstTimeTip').classList.add('hide');localStorage.setItem('bc_tutorial_seen','1');$('tutorialVideo').currentTime=0; }
+function closeTutorial(){ $('tutorialVideo').pause();$('videoOverlay').classList.add('hide') }
+$('howTo').onclick=openTutorial;
+$('firstTimeWatch').onclick=openTutorial;
+$('dismissTip').onclick=()=>{localStorage.setItem('bc_tutorial_seen','1');$('firstTimeTip').classList.add('hide')};
+$('closeVideo').onclick=closeTutorial;
+$('videoOverlay').addEventListener('click',e=>{if(e.target===$('videoOverlay'))closeTutorial()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeTutorial()});
+if(!localStorage.getItem('bc_tutorial_seen'))$('firstTimeTip').classList.remove('hide');
 let session,code='',game=null,busy=false,clockOffset=0,localTick=0;
 const err=e=>{$('message').textContent=e.message||String(e)};
 function time(ms){let n=Math.max(0,Math.floor(ms||0));let m=Math.floor(n/60000),s=Math.floor(n%60000/1000),d=Math.floor(n%1000/100);return `${m}:${String(s).padStart(2,'0')}.${d}`}
