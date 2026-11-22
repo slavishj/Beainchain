@@ -35,6 +35,7 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 .alert{color:#f9d894;min-height:24px}
 #pauseScreen{background:#111a2e;text-align:center;padding:60px 20px;border-radius:20px}
 #guessForm{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+#revealClue{width:100%;margin-top:8px}
 #gamesStatus:empty{display:none}
 .manualJoin summary{width:fit-content;padding:10px 0;color:#b7f4dc;cursor:pointer}
 .manualJoin .stack{margin-top:6px}
@@ -204,6 +205,7 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
   <div id="solveControls" class="hide">
    <div class="badge" id="pointsAvailable" style="display:block;text-align:center;margin:16px auto">Worth 100 points</div>
    <form id="guessForm"><input id="answer" placeholder="Your answer" autocomplete="off" autocapitalize="characters"><button class="primary">GUESS</button></form>
+   <button id="revealClue" class="secondary" type="button">Reveal a letter (−20 points)</button>
   </div>
   <p class="alert" id="message" role="status"></p>
  </div>
@@ -686,19 +688,30 @@ $('create').onclick=createChallenge;
 $('playAgain').onclick=()=>{if(game?.status==='completed')return createChallenge()};
 $('join').onclick=()=>action(async()=>{let c=$('joinCode').value.trim().toUpperCase();if(!c)throw Error('Enter a code');await rpc('brainchain_join_game',{p_code:c});await show(c)});
 $('start').onclick=()=>action(async()=>{await rpc('bc_start',{p_code:code});await refresh()});
-$('guessForm').onsubmit=e=>{
- e.preventDefault();unlockAudio();
- action(async()=>{
-  const v=$('answer').value.trim();if(!v)return;
-  const previousPlayer=game?.currentPlayer,previousWord=game?.wordNumber,earned=game?.pointsAvailable||0;
-  const correct=await rpc('bc_guess',{p_code:code,p_guess:v});
-  $('answer').value='';await refresh();
+function submitGuess(guess,revealLetter=false){
+ if(!guess||game?.status!=='active'||!game.started||game.currentPlayer!==game.myPlayer)return;
+ unlockAudio();
+ return action(async()=>{
+  const previousPlayer=game.currentPlayer,previousWord=game.wordNumber,earned=game.pointsAvailable;
+  const correct=await rpc('bc_guess',{p_code:code,p_guess:guess});
+  if(!revealLetter)$('answer').value='';
+  await refresh();
   const movedOn=game?.currentPlayer!==previousPlayer||game?.wordNumber!==previousWord||game?.status==='completed';
+  if(movedOn)$('answer').value='';
   if(correct){showFeedback(true,'CORRECT! +'+earned+' points!')}
   else if(movedOn){showFeedback(false,'All letters revealed. Word complete — 0 points.')}
-  else{showFeedback(false,'Not quite! Another letter revealed. Now worth '+game.pointsAvailable+' points.')}
+  else{
+   const feedback=revealLetter?'Letter revealed.':'Not quite! Another letter revealed.';
+   showFeedback(false,feedback+' Now worth '+game.pointsAvailable+' points.');
+  }
  });
+}
+$('guessForm').onsubmit=e=>{
+ e.preventDefault();
+ submitGuess($('answer').value.trim());
 };
+// The guess endpoint already handles the point deduction, reveal and turn advance.
+$('revealClue').onclick=()=>submitGuess('!',true);
 $('share').onclick=async()=>{const url=invitation();let text='I challenge you to BrainChain!';try{const p=await rpc('bc_profile_get');if(p.screenName)text=p.screenName+' challenges you to BrainChain! 🧠'+(p.words?' Career: '+p.wins+' wins · '+p.averagePoints+' points per word.':'')}catch(e){}if(navigator.share){try{await navigator.share({title:'BrainChain Challenge',text,url})}catch(e){}}else{await navigator.clipboard.writeText(text+' '+url);$('message').textContent='Invitation copied'}};
 $('copy').onclick=async()=>{try{await navigator.clipboard.writeText(invitation());$('message').textContent='Invitation link copied'}catch(e){$('message').textContent=invitation()}};
 $('leave').onclick=()=>{
