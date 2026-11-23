@@ -148,6 +148,11 @@ body.typing #guessForm button{padding:12px}
 #headline[data-turn="mine"]{background:#7be9c3;color:#09272a}
 #headline[data-turn="theirs"]{background:#263a5b;color:#e7efff;border:1px solid #667fa5}
 #turnInfo:empty{display:none}
+.opponentGames{border:1px solid #465b7b;border-radius:14px;background:#101d35}
+.opponentGames summary{cursor:pointer;padding:13px 12px;min-height:48px;font-weight:800}
+.opponentGames summary small{margin-left:8px;color:#becce2;font-weight:600}
+.opponentGames summary .turnCount{color:#9cf9d8}
+.opponentGames .gameGroup{padding:0 8px 8px}
 </style>
 </head>
 <body>
@@ -712,30 +717,43 @@ async function loadGames(){
   }).then(response=>response.ok?response.json():[]).catch(()=>[]);
   if($('lobby').classList.contains('hide'))return;
   $('gamesStatus').textContent=items.length||recent.length?'':'No open games yet. Create a challenge to get started.';
-  const groups=['Your turn','Their turn','Waiting for a friend','Recently completed'].map((title,index)=>{
-   const group=document.createElement('section');
-   group.className='gameGroup'+(index===0?' yourTurn':'');
-   const heading=document.createElement('h3');heading.textContent=title;
-   group.append(heading);
-   return group;
-  });
+  const expanded=new Set([...$('gamesList').querySelectorAll('details[open]')].map(group=>group.dataset.opponent));
+  const groups=new Map();
   const names=labels();
   [...items,...recent].forEach((g,index)=>{
    const mine=g.player_one_id===session.user.id?1:2;
    const waiting=g.status==='waiting';
    const completed=g.status==='completed';
-   const group=groups[completed?3:waiting?2:g.current_player===mine?0:1];
+   const theirId=mine===1?g.player_two_id:g.player_one_id;
+   const key=theirId||'pending';
+   const myTurn=!waiting&&!completed&&g.current_player===mine;
+   if(!groups.has(key)){
+    const details=document.createElement('details');
+    details.className='opponentGames';details.dataset.opponent=key;details.open=expanded.has(key);
+    const header=document.createElement('summary');
+    const name=document.createElement('span');name.textContent=theirId?'Friend':'Pending invitations';
+    const count=document.createElement('small');
+    header.append(name,count);
+    const rows=document.createElement('div');rows.className='gameGroup';
+    details.append(header,rows);
+    groups.set(key,{details,rows,count,total:0,turns:0});
+    if(theirId)rpc('bc_match_players',{p_code:g.invite_code}).then(players=>{
+     const friend=mine===1?players?.two:players?.one;
+     if(friend?.name?.trim())name.textContent=friend.name.trim();
+    }).catch(()=>{});
+   }
+   const group=groups.get(key);
+   group.total++;
+   if(myTurn)group.turns++;
    const label=names[g.invite_code]||(completed?'Completed game':'Game '+(items.length-index));
    const item=document.createElement('div');item.className='gameItem';
    const summary=document.createElement('div');
-   const opponent=document.createElement('div');
-   opponent.textContent=waiting?'Invitation pending':'Friend';
    const gameLabel=document.createElement('span');gameLabel.className='gameLabel';gameLabel.textContent=label;
    const progress=document.createElement('span');progress.className='gameProgress';
-   if(!waiting&&!completed)progress.textContent='Word '+Math.min(4,g.word_number)+' of 4';
-   summary.append(opponent,gameLabel,progress);
+   progress.textContent=completed?'Completed':waiting?'Invitation pending':(myTurn?'Your turn':'Their turn')+' · Word '+Math.min(4,g.word_number)+' of 4';
+   summary.append(gameLabel,progress);
    const open=document.createElement('button');
-   open.type='button';open.className='gameOpen'+(group===groups[0]?' primary':' secondary');
+   open.type='button';open.className='gameOpen'+(myTurn?' primary':' secondary');
    open.textContent=completed?'View result':'Open game';
    open.setAttribute('aria-label','Open '+label);
    open.onclick=()=>show(g.invite_code);
@@ -743,14 +761,7 @@ async function loadGames(){
    rename.type='button';rename.className='gameRename';rename.textContent='Name game';
    rename.setAttribute('aria-label','Name '+label);
    rename.onclick=()=>{const val=prompt('Name this game (for example, Jeff)',label);if(val?.trim()){storeLabel(g.invite_code,val.trim().slice(0,35));loadGames()}};
-   item.append(summary,open,rename);group.append(item);
-   if(g.player_two_id){
-    rpc('bc_match_players',{p_code:g.invite_code}).then(players=>{
-     const friend=mine===1?players?.two:players?.one;
-     const name=friend?.name?.trim();
-     if(name)opponent.replaceChildren(playerLink(name,friend));
-    }).catch(()=>{});
-   }
+   item.append(summary,open,rename);group.rows.append(item);
    if(!waiting){
     rpc('bc_view',{p_code:g.invite_code}).then(view=>{
      const myPoints=mine===1?view?.playerOnePoints:view?.playerTwoPoints;
@@ -765,7 +776,12 @@ async function loadGames(){
     }).catch(()=>{});
    }
   });
-  $('gamesList').replaceChildren(...groups.filter(group=>group.childElementCount>1));
+  const sorted=[...groups.values()].sort((a,b)=>b.turns-a.turns);
+  for(const group of sorted){
+   group.count.textContent=group.total+(group.total===1?' game':' games')+(group.turns?' · '+group.turns+' your turn':'');
+   group.count.classList.toggle('turnCount',group.turns>0);
+  }
+  $('gamesList').replaceChildren(...sorted.map(group=>group.details));
  }catch(e){$('gamesStatus').textContent=e.message}
  finally{loadingGames=false}
 }
