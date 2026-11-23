@@ -49,8 +49,6 @@ body.typing .activeClue{display:block}
 body.typing #guessForm input{font-size:16px;min-width:0;padding:12px 9px}
 body.typing #guessForm button{padding:12px}
 #gamesStatus:empty{display:none}
-.manualJoin summary{width:fit-content;padding:10px 0;color:#b7f4dc;cursor:pointer}
-.manualJoin .stack{margin-top:6px}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between}
 .toolbar button{min-height:42px;padding:10px 14px}
 .toolbar .soundToggle{display:inline-flex;align-items:center;gap:8px;min-height:44px}
@@ -198,13 +196,6 @@ body.typing #guessForm button{padding:12px}
  <button id="create" class="primary full">Create a challenge</button>
  <p class="small" id="gamesStatus" role="status">Loading your games...</p>
  <div id="gamesList" class="gameList"></div>
- <details class="manualJoin">
-  <summary>Enter a code</summary>
-  <div class="stack">
-   <input id="joinCode" aria-label="Invitation code" placeholder="Enter invitation code" autocapitalize="characters" autocomplete="off">
-   <button id="join" class="full">Join a challenge</button>
-  </div>
- </details>
 </section>
 <section id="match" class="hide">
  <div class="card">
@@ -884,7 +875,6 @@ function createChallenge(){
 }
 $('create').onclick=createChallenge;
 $('playAgain').onclick=()=>{if(game?.status==='completed')return createChallenge()};
-$('join').onclick=()=>action(async()=>{let c=$('joinCode').value.trim().toUpperCase();if(!c)throw Error('Enter a code');await rpc('brainchain_join_game',{p_code:c});await show(c)});
 $('start').onclick=()=>action(async()=>{await rpc('bc_start',{p_code:code});await refresh()});
 function submitGuess(guess,revealLetter=false){
  if(!guess||game?.status!=='active'||!game.started||game.currentPlayer!==game.myPlayer)return;
