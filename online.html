@@ -178,11 +178,22 @@ body.typing #guessForm button{padding:12px}
 #mailEntries>div{background:#101d31;border-radius:10px;padding:10px}
 .mailBadge{display:inline-block;min-width:1.4em;margin-inline-start:5px;padding:2px 5px;border-radius:20px;background:#bb2446;color:white;font-size:.8em}
 .mailBadge.hide{display:none}
+.profileForm select,#mapState{width:100%;background:#101a30;color:#f4f8ff;border:1px solid #677895;border-radius:10px;padding:10px;font:inherit;min-height:44px}
+.profileForm .stateHelp{margin:0}
+#playerMap{width:min(680px,calc(100% - 24px))}
+#mapGraphic{display:block;width:100%;height:auto;margin:12px 0}
+#mapGraphic path{fill:#53637e;stroke:#111e34;stroke-width:1.2;fill-rule:evenodd;cursor:pointer}
+#mapGraphic .represented{fill:#7be9c3}
+#mapGraphic .selected{stroke:#fff;stroke-width:2.5}
+#mapLegend{display:flex;gap:12px;flex-wrap:wrap}
+#mapLegend span::before{content:'';display:inline-block;width:10px;height:10px;margin-right:5px;border-radius:2px;background:#53637e}
+#mapLegend span:first-child::before{background:#7be9c3}
+#mapStatus:empty,#mapSummary:empty{display:none}
 </style>
 </head>
 <body>
 <main>
-<div class="toolbar"><a class="homeButton" href="./index.html">Home</a><button id="profileButton" class="secondary" type="button">👤 Profile <span id="profileMailBadge" class="mailBadge hide"></span></button><button id="howTo" class="secondary" type="button">How to Play</button><button id="soundToggle" class="secondary soundToggle" type="button" role="switch" aria-label="Sound" aria-checked="true">Sound <span id="soundState" aria-hidden="true">On</span><span class="soundTrack" aria-hidden="true"></span></button><button id="leave" class="secondary hide">My Games</button></div>
+<div class="toolbar"><a class="homeButton" href="./index.html">Home</a><button id="howTo" class="secondary" type="button">How to Play</button><button id="profileButton" class="secondary" type="button">👤 Profile <span id="profileMailBadge" class="mailBadge hide"></span></button><button id="soundToggle" class="secondary soundToggle" type="button" role="switch" aria-label="Sound" aria-checked="true">Sound <span id="soundState" aria-hidden="true">On</span><span class="soundTrack" aria-hidden="true"></span></button><button id="leave" class="secondary hide">My Games</button></div>
 <h1>Brain<span>Chain</span></h1><p class="small">ONLINE CHALLENGE · TEST VERSION</p>
 <div id="firstTimeTip" class="tutorialTip hide">
  <p><strong>New to BrainChain Online?</strong> Learn the rules with a sample turn.</p>
@@ -203,6 +214,9 @@ body.typing #guessForm button{padding:12px}
   </div>
   <div id="profileEditor" class="profileForm hide">
    <label for="profileName">Screen name</label><input id="profileName" maxlength="20" placeholder="e.g. LakeLymanJeremy" autocomplete="nickname" spellcheck="false">
+   <label for="profileState">State (optional)</label>
+   <select id="profileState" aria-describedby="stateHelp"><option value="">No state selected</option></select>
+   <p id="stateHelp" class="small stateHelp">Choose the state you want to represent. BrainChain uses it for group statistics.</p>
    <div class="stack">
     <button id="choosePhoto" class="secondary" type="button">Choose Photo</button>
     <button id="takePhoto" class="secondary" type="button">Take Photo</button>
@@ -224,6 +238,7 @@ body.typing #guessForm button{padding:12px}
  <div class="card stack">
   <button id="playerMailbox" type="button" class="secondary hide">Messages <span id="playerMailBadge" class="mailBadge hide"></span></button>
   <button id="adminMailbox" type="button" class="secondary hide">Admin Mailbox <span id="adminMailBadge" class="mailBadge hide"></span></button>
+  <button id="openPlayerMap" type="button" class="secondary hide">Player Map</button>
   <details id="accountDetails">
    <summary class="small">Account details</summary>
    <div class="small" style="overflow-wrap:anywhere">
@@ -245,6 +260,18 @@ body.typing #guessForm button{padding:12px}
   </ul>
   <div id="profileLeaderboard">Loading...</div></div>
 </section>
+<dialog id="playerMap" class="guideDialog" aria-labelledby="mapTitle">
+ <div class="guideHeader"><h2 id="mapTitle">Player Map</h2><button id="mapClose" type="button" class="secondary">Close</button></div>
+ <p id="mapSummary"></p>
+ <div id="mapLegend" class="small hide"><span>Players in state</span><span>No players</span></div>
+ <svg id="mapGraphic" class="hide" aria-hidden="true"></svg>
+ <p id="mapStatus" role="status"></p>
+ <div id="mapStateDetails" class="hide">
+  <label for="mapState">State or district</label>
+  <select id="mapState"><option value="">Choose a state</option></select>
+  <p id="mapCount" aria-live="polite"></p>
+ </div>
+</dialog>
 <dialog id="mailbox" class="card" aria-labelledby="mailTitle">
  <div class="gamesHeader"><h2 id="mailTitle">Messages</h2><button id="mailClose" type="button" class="secondary">Close</button></div>
  <p id="mailStatus" class="small" role="status"></p>
@@ -476,11 +503,12 @@ function renderProfileIdentity(p){
  if(profilePhotoPreview){URL.revokeObjectURL(profilePhotoPreview);profilePhotoPreview=''}
  $('profileName').value=p.screenName||'';$('profilePhoto').value='';$('cameraPhoto').value='';$('profileDisplay').textContent=p.screenName||'Create your player profile';
  $('accountUsername').textContent=p.screenName||'Not set yet';
+ $('profileState').value=p.state||'';
  profilePicture($('profilePreview'),selectedAvatar,profilePhotoPath);drawAvatars();
  $('editProfile').disabled=false;
 }
 async function loadProfile(){
- const p=await rpc('bc_profile_get');renderProfileIdentity(p);statTiles(p);
+ const p=await rpc('bc_profile_get_with_state');renderProfileIdentity(p);statTiles(p);
  const leaders=await rpc('bc_leaderboard');const host=$('profileLeaderboard');host.replaceChildren();
  if(!leaders.length){host.textContent='The leaderboard will appear once players have completed 10 scored words.'}
  leaders.forEach(x=>{const row=document.createElement('div');row.className='rankingRow';const left=document.createElement('div');left.className='rankingName';
@@ -582,8 +610,9 @@ $('saveProfile').onclick=async()=>{
  const btn=$('saveProfile');btn.disabled=true;$('profileMessage').textContent='Saving...';
  try{await auth();const name=$('profileName').value.trim();if(!/^[A-Za-z][A-Za-z0-9_]{2,19}$/.test(name))throw Error('Use 3–20 letters, numbers or underscores. Start with a letter.');
   if(profileFile)profilePhotoPath=await uploadPhoto(profileFile);
-  await rpc('bc_profile_save',{p_name:name,p_avatar:selectedAvatar,p_photo:profilePhotoPath});
-  renderProfileIdentity({...profileData,screenName:name,avatar:selectedAvatar,photoPath:profilePhotoPath});
+  const state=$('profileState').value||null;
+  await rpc('bc_profile_save_with_state',{p_name:name,p_avatar:selectedAvatar,p_photo:profilePhotoPath,p_state:state});
+  renderProfileIdentity({...profileData,screenName:name,avatar:selectedAvatar,photoPath:profilePhotoPath,state});
   setProfileEditing(false);
   $('editProfile').focus();
   $('profileMessage').textContent='✓ Profile saved!';
@@ -1097,6 +1126,7 @@ async function refreshMailboxStatus() {
   const status = await mailRequest('status', {p_admin:false});
   $('playerMailbox').classList.toggle('hide', !status.enabled);
   $('adminMailbox').classList.toggle('hide', !status.admin);
+  $('openPlayerMap').classList.toggle('hide', !status.admin);
   mailBadge('profileMailBadge', status.playerUnread+status.adminUnread);
   mailBadge('playerMailBadge', status.playerUnread);
   mailBadge('adminMailBadge', status.adminUnread);
@@ -1244,6 +1274,94 @@ $('accountDetails').addEventListener('toggle', async event => {
   email.textContent = 'Unavailable';
  }
 });
+const usStates = [["01","AL","Alabama"],["02","AK","Alaska"],["04","AZ","Arizona"],["05","AR","Arkansas"],["06","CA","California"],["08","CO","Colorado"],["09","CT","Connecticut"],["10","DE","Delaware"],["11","DC","District of Columbia"],["12","FL","Florida"],["13","GA","Georgia"],["15","HI","Hawaii"],["16","ID","Idaho"],["17","IL","Illinois"],["18","IN","Indiana"],["19","IA","Iowa"],["20","KS","Kansas"],["21","KY","Kentucky"],["22","LA","Louisiana"],["23","ME","Maine"],["24","MD","Maryland"],["25","MA","Massachusetts"],["26","MI","Michigan"],["27","MN","Minnesota"],["28","MS","Mississippi"],["29","MO","Missouri"],["30","MT","Montana"],["31","NE","Nebraska"],["32","NV","Nevada"],["33","NH","New Hampshire"],["34","NJ","New Jersey"],["35","NM","New Mexico"],["36","NY","New York"],["37","NC","North Carolina"],["38","ND","North Dakota"],["39","OH","Ohio"],["40","OK","Oklahoma"],["41","OR","Oregon"],["42","PA","Pennsylvania"],["44","RI","Rhode Island"],["45","SC","South Carolina"],["46","SD","South Dakota"],["47","TN","Tennessee"],["48","TX","Texas"],["49","UT","Utah"],["50","VT","Vermont"],["51","VA","Virginia"],["53","WA","Washington"],["54","WV","West Virginia"],["55","WI","Wisconsin"],["56","WY","Wyoming"]];
+const stateSelector = $('profileState');
+const mapSelector = $('mapState');
+for (const [, code, name] of usStates) {
+ stateSelector.add(new Option(name, code));
+ mapSelector.add(new Option(name, code));
+}
+
+const playerMap = $('playerMap');
+const mapGraphic = $('mapGraphic');
+let mapGeometry;
+function renderMapShapes(data, counts) {
+ const {scale, translate} = data.transform;
+ const arcs = data.arcs.map(arc => {
+  let x = 0, y = 0;
+  return arc.map(([dx, dy]) => {
+   x += dx;
+   y += dy;
+   return [Math.round(x * scale[0] + translate[0]), Math.round(y * scale[1] + translate[1])];
+  });
+ });
+ const states = new Map(usStates.map(([id, code]) => [id, code]));
+ const [left, top, right, bottom] = data.bbox;
+ mapGraphic.setAttribute('viewBox', [left, top, right - left, bottom - top].join(' '));
+ mapGraphic.replaceChildren();
+ for (const shape of data.objects.states.geometries) {
+  const code = states.get(shape.id);
+  if (!code) continue;
+  const rings = shape.type === 'MultiPolygon' ? shape.arcs.flat() : shape.arcs;
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  const outline = rings.map(ring => {
+   const points = ring.flatMap(index => index < 0 ? [...arcs[~index]].reverse() : arcs[index]);
+   return 'M' + points.map(point => point.join(',')).join('L') + 'Z';
+  }).join('');
+  path.setAttribute('d', outline);
+  path.dataset.state = code;
+  path.classList.toggle('represented', !!counts[code]);
+  path.onclick = () => { mapSelector.value = code; mapSelector.onchange(); };
+  mapGraphic.append(path);
+ }
+}
+
+$('mapClose').onclick = () => playerMap.close();
+$('openPlayerMap').onclick = async () => {
+ const button = $('openPlayerMap');
+ const status = $('mapStatus');
+ const summary = $('mapSummary');
+ const stateDetails = $('mapStateDetails');
+ button.disabled = true;
+ status.textContent = 'Loading player map…';
+ summary.textContent = '';
+ $('mapLegend').classList.add('hide');
+ mapGraphic.classList.add('hide');
+ stateDetails.classList.add('hide');
+ $('mapCount').textContent = '';
+ playerMap.showModal();
+ try {
+  const {states, unselected} = await rpc('bc_admin_player_map');
+  const represented = Object.keys(states).length;
+  summary.textContent = represented + (represented === 1 ? ' state or district represented' : ' states or districts represented') + ' · ' + unselected + ' without a state';
+  mapSelector.onchange = () => {
+   const code = mapSelector.value;
+   const count = states[code] || 0;
+   $('mapCount').textContent = code ? count + (count === 1 ? ' player' : ' players') : '';
+   for (const path of mapGraphic.children) path.classList.toggle('selected', path.dataset.state === code);
+  };
+  stateDetails.classList.remove('hide');
+  mapSelector.onchange();
+  try {
+   mapGeometry ||= await fetch('https://cdn.jsdelivr.net/npm/us-atlas@3.0.1/states-albers-10m.json', {referrerPolicy:'no-referrer'}).then(response => {
+    if (!response.ok) throw Error('Map could not load');
+    return response.json();
+   });
+   renderMapShapes(mapGeometry, states);
+   mapSelector.onchange();
+   mapGraphic.classList.remove('hide');
+   $('mapLegend').classList.remove('hide');
+   status.textContent = '';
+  } catch {
+   status.textContent = 'The map is unavailable. Choose a state below to see its count.';
+  }
+ } catch (error) {
+  status.textContent = error.message || 'Player counts could not be loaded.';
+ } finally {
+  button.disabled = false;
+ }
+};
+
 setInterval(refreshMailboxStatus, 15000);
 document.addEventListener('visibilitychange', refreshMailboxStatus);
 refreshMailboxStatus();
