@@ -25,6 +25,17 @@ body.typing .guessbox button{padding:12px}
 #guess:disabled{background:#c6d8d3;color:#536963}
 .homeNav{background:#344767;color:#f5f8ff;border:1px solid #63789c;box-shadow:0 4px 14px #0005;font-size:14px;font-weight:750;letter-spacing:0;padding:10px 14px;border-radius:12px;min-height:44px}
 .homeNav:focus-visible{outline:3px solid #8cf2cc;outline-offset:2px}
+.partyGuideToolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+.partyGuide{width:min(480px,calc(100% - 24px));max-height:calc(100dvh - 24px);color:#f8faff;overflow:auto}
+.partyGuide::backdrop{background:#050b18df}
+.partyGuideHeader{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.partyGuideHeader h2{margin:0;font-size:20px}
+.partyGuide h3{font-size:24px;margin:12px 0}
+.partyGuide ul{padding-inline-start:1.25em;color:#c6d1ea;line-height:1.5}
+.partyGuide li+li{margin-top:7px}
+.partyGuideControls{justify-content:space-between;margin:20px 0 0}
+.partyGuideControls button{min-height:44px}
+.partyGuideExample{padding:12px;border-radius:10px;background:#101d32;color:#9cf9d8;text-align:center;font-weight:800}
 /* Native-app-like start screen: game modes first, setup only when needed. */
 .homeScreen .top{justify-content:space-between;gap:8px;padding:24px 0 8px}
 .homeScreen .logo{font-size:clamp(31px,9.5vw,57px);letter-spacing:-2px}
@@ -565,7 +576,58 @@ async function loadHomeIdentity(){
 }
 loadHomeIdentity();
 window.addEventListener('pageshow',loadHomeIdentity);
-document.querySelector('#setup .panel').insertAdjacentHTML('afterbegin','<button type="button" class="homeNav" id="setupBack" style="margin-bottom:20px">‹ Back</button>');
+document.querySelector('#setup .panel').insertAdjacentHTML('afterbegin', `
+ <div class="partyGuideToolbar">
+  <button type="button" class="homeNav" id="setupBack">‹ Back</button>
+  <button type="button" class="homeNav" id="openPartyGuide">How to Play</button>
+ </div>`);
+document.querySelector('#setup').insertAdjacentHTML('afterend', `
+ <dialog id="partyGuide" class="panel partyGuide" aria-labelledby="partyGuideTitle">
+  <div class="partyGuideHeader"><h2 id="partyGuideTitle">How to Play Pass &amp; Play</h2><button type="button" class="homeNav" id="closePartyGuide" autofocus>Close</button></div>
+  <p id="partyGuideCounter" class="muted" aria-live="polite"></p>
+  <section id="partyGuideCards">
+   <article><h3 tabindex="-1">Set up your teams</h3><ul><li>Choose how many teams and players you have</li><li>Set a time per guess or choose No timer</li><li>Choose how many round wins you’re playing for</li></ul></article>
+   <article hidden><h3 tabindex="-1">Pass the phone</h3><ul><li>Hand the phone to the team shown on screen</li><li>Tap Start Turn to reveal the chain and start the timer if you’ve set one</li><li>Every team gets the same chain and picks up where it left off</li></ul></article>
+   <article hidden><h3 tabindex="-1">Connect the words</h3><div class="partyGuideExample">RAIN → B _ _ → TIE</div><ul><li>Guess a word that pairs with the word before it</li><li>BOW makes RAINBOW and sets up BOW TIE</li><li>Keep guessing the next word after each correct answer</li></ul></article>
+   <article hidden><h3 tabindex="-1">Missed a guess?</h3><ul><li>A wrong guess, a timeout, or tapping Pass Turn counts as one miss</li><li>The game reveals another letter</li><li>Tap Next Team and hand over the phone</li></ul></article>
+   <article hidden><h3 tabindex="-1">Win the round</h3><ul><li>The round ends when every team finishes its chain</li><li>The team with the fewest misses wins the round</li><li>Teams tied for the fewest misses each get a round win</li><li>Reach your First to Win target to finish the match</li></ul></article>
+  </section>
+  <div class="partyGuideToolbar partyGuideControls"><button type="button" class="homeNav" id="partyGuidePrev">Previous</button><button type="button" class="primary" id="partyGuideNext">Next</button></div>
+ </dialog>`);
+const partyGuide = $('partyGuide');
+const partyCards = [...$('partyGuideCards').children];
+let partyCardIndex = 0;
+function showPartyGuideCard(index, moveFocus = true) {
+ partyCardIndex = Math.max(0, Math.min(index, partyCards.length - 1));
+ partyCards.forEach((card, position) => { card.hidden = position !== partyCardIndex; });
+ $('partyGuideCounter').textContent = (partyCardIndex + 1) + ' of ' + partyCards.length;
+ $('partyGuidePrev').disabled = partyCardIndex === 0;
+ $('partyGuideNext').textContent = partyCardIndex === partyCards.length - 1 ? 'Done' : 'Next';
+ if (moveFocus) partyCards[partyCardIndex].querySelector('h3').focus({preventScroll:true});
+}
+$('openPartyGuide').onclick = () => { showPartyGuideCard(0, false); partyGuide.showModal(); };
+$('closePartyGuide').onclick = () => partyGuide.close();
+$('partyGuidePrev').onclick = () => showPartyGuideCard(partyCardIndex - 1);
+$('partyGuideNext').onclick = () => {
+ if (partyCardIndex === partyCards.length - 1) partyGuide.close();
+ else showPartyGuideCard(partyCardIndex + 1);
+};
+partyGuide.addEventListener('keydown', event => {
+ if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+ event.preventDefault();
+ showPartyGuideCard(partyCardIndex + (event.key === 'ArrowRight' ? 1 : -1));
+});
+let partySwipeStart;
+$('partyGuideCards').addEventListener('touchstart', event => { partySwipeStart = event.touches.length === 1 ? event.touches[0] : null; }, {passive:true});
+$('partyGuideCards').addEventListener('touchend', event => {
+ if (!partySwipeStart) return;
+ const touch = event.changedTouches[0];
+ const dx = touch.clientX - partySwipeStart.clientX;
+ const dy = touch.clientY - partySwipeStart.clientY;
+ partySwipeStart = null;
+ if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy)) showPartyGuideCard(partyCardIndex + (dx < 0 ? 1 : -1), false);
+}, {passive:true});
+$('partyGuideCards').addEventListener('touchcancel', () => { partySwipeStart = null; });
 document.querySelector('#setup .panel h2').textContent='Pass & Play';
 document.querySelector('#setupHelp').textContent='Choose your teams, then start playing.';
 document.querySelector('#setup').classList.add('hide');
