@@ -139,7 +139,8 @@ body.typing #guessForm button{padding:12px}
 @keyframes popIn{from{opacity:0;transform:scale(.9) translateY(-12px)}to{opacity:1;transform:scale(1) translateY(0)}}
 @media(max-width:360px){h1{font-size:34px}.clue{font-size:23px}}
 .matchHeading{display:flex;justify-content:space-between;align-items:center;gap:8px}
-#chatBadge{color:#9cf9d8}
+button#openChat{background:#b72539;color:#fff}
+#chatBadge{color:#fff}
 #chatMessages{max-height:35dvh;overflow:auto;display:grid;gap:8px;margin:12px 0}
 .chatMessage{margin:0;padding:9px 12px;border-radius:12px;background:#253956;overflow-wrap:anywhere;white-space:pre-wrap}
 .chatMessage.mine{background:#254c50}
@@ -213,8 +214,8 @@ body.typing #guessForm button{padding:12px}
   </div>
   <h2 id="headline" aria-live="polite">Your challenge</h2>
   <div class="grid">
-   <div class="score"><p id="myScoreName" class="playerName">Your points</p><div class="time" id="mine">0 pts</div></div>
-   <div class="score"><p id="theirScoreName" class="playerName">Friend's points</p><div class="time" id="theirs">0 pts</div></div>
+   <div class="score"><p id="myScoreName" class="playerName">You</p><div class="time" id="mine">0 pts</div></div>
+   <div class="score"><p id="theirScoreName" class="playerName">Friend</p><div class="time" id="theirs">0 pts</div></div>
   </div>
   <p id="turnInfo"></p>
   <button id="playAgain" class="primary full hide" type="button">New Game</button>
@@ -756,7 +757,7 @@ function invitation(){return location.origin+location.pathname+'?invite='+encode
 async function show(codeToShow){
  chatDialog.close();game=null;$('headline').textContent='Loading match…';$('headline').removeAttribute('data-turn');setConnectionStatus('');$('message').textContent='';setChatUnread(false);$('openChat').classList.add('hide');
  lastPlayersFetch=0;
- $('myScoreName').textContent='Your points';$('theirScoreName').textContent='Friend’s points';
+ $('myScoreName').textContent='You';$('theirScoreName').textContent='Friend';
  code=String(codeToShow).trim().toUpperCase();history.replaceState(null,'','?invite='+encodeURIComponent(code));
  $('lobby').classList.add('hide');$('match').classList.remove('hide');$('leave').classList.remove('hide');
  await refresh();await refreshMatchPlayers();
@@ -769,9 +770,9 @@ async function refreshMatchPlayers(){
  const mine=myFirst?p.one:p.two,theirs=myFirst?p.two:p.one;
  const showName=(id,player,fallback)=>{
   const host=$(id);const name=player?.name;
-  host.replaceChildren(name?playerLink(name,player,name+' points'):fallback+' points');
+  host.replaceChildren(name?playerLink(name,player):fallback);
  };
- showName('myScoreName',mine,'Your');showName('theirScoreName',theirs,'Friend');
+ showName('myScoreName',mine,'You');showName('theirScoreName',theirs,'Friend');
  lastPlayersFetch=Date.now();
  }catch(e){}
 }
