@@ -53,7 +53,7 @@ body.typing #guessForm button{padding:12px}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between}
 .toolbarPrimary{display:flex;gap:10px;flex-wrap:wrap}
 .toolbar button{min-height:42px;padding:10px 14px}
-.toolbar .soundToggle{display:inline-flex;align-items:center;gap:8px;min-height:44px}
+.soundToggle{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:10px 14px}
 #soundState{min-width:2ch;text-align:center;color:#d6deef}
 .soundTrack{width:34px;height:20px;padding:3px;border-radius:12px;background:#64748b;display:inline-flex;align-items:center}
 .soundTrack::before{content:'';width:14px;height:14px;border-radius:50%;background:white}
@@ -201,7 +201,7 @@ input.statePrivacyCheck{width:18px;min-height:18px;margin:0;accent-color:#7be9c3
 </head>
 <body>
 <main>
-<div class="toolbar"><div class="toolbarPrimary"><a class="homeButton" href="./index.html">Home</a><button id="howTo" class="secondary" type="button">How to Play</button></div><button id="profileButton" class="secondary" type="button">👤 Profile <span id="profileMailBadge" class="mailBadge hide"></span></button><button id="soundToggle" class="secondary soundToggle" type="button" role="switch" aria-label="Sound" aria-checked="true">Sound <span id="soundState" aria-hidden="true">On</span><span class="soundTrack" aria-hidden="true"></span></button><button id="leave" class="secondary hide">My Games</button></div>
+<div class="toolbar"><div class="toolbarPrimary"><a class="homeButton" href="./index.html">Home</a><button id="howTo" class="secondary" type="button">How to Play</button></div><button id="profileButton" class="secondary" type="button">👤 Profile <span id="profileMailBadge" class="mailBadge hide"></span></button><button id="leave" class="secondary hide">My Games</button></div>
 <h1>Brain<span>Chain</span></h1><p class="modeHeading">Online Play – One chain, miles apart!</p>
 <div id="firstTimeTip" class="tutorialTip hide">
  <p><strong>New to BrainChain Online?</strong> Learn the rules with a sample turn.</p>
@@ -265,6 +265,7 @@ input.statePrivacyCheck{width:18px;min-height:18px;margin:0;accent-color:#7be9c3
    </div>
   </details>
  </div>
+ <div class="card"><h2>Settings</h2><button id="soundToggle" class="secondary soundToggle" type="button" role="switch" aria-label="Sound" aria-checked="true">Sound <span id="soundState" aria-hidden="true">On</span><span class="soundTrack" aria-hidden="true"></span></button></div>
  <div class="card"><h2>Your Player Card</h2><div id="profileStats" class="statGrid"></div><ul class="small" style="padding-inline-start:1.25em">
   <li>Word scores are out of 100</li>
   <li>Game scores are out of 400</li>
