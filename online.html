@@ -181,6 +181,8 @@ body.typing #guessForm button{padding:12px}
 .mailBadge.hide{display:none}
 .profileForm select,#mapState,#accountStatePicker{width:100%;background:#101a30;color:#f4f8ff;border:1px solid #677895;border-radius:10px;padding:10px;font:inherit;min-height:44px}
 .profileForm .stateHelp{margin:0}
+.statePrivacy{display:flex;align-items:center;gap:8px;min-height:44px;width:fit-content;cursor:pointer}
+input.statePrivacyCheck{width:18px;min-height:18px;margin:0;accent-color:#7be9c3}
 #accountStateForm{display:grid;gap:8px}
 #accountStateForm p,#accountStateStatus{margin:0}
 #accountStateStatus:empty{display:none}
@@ -221,7 +223,8 @@ body.typing #guessForm button{padding:12px}
    <label for="profileName">Screen name</label><input id="profileName" maxlength="20" placeholder="e.g. LakeLymanJeremy" autocomplete="nickname" spellcheck="false">
    <label for="profileState">State (optional)</label>
    <select id="profileState" aria-describedby="stateHelp"><option value="">No state selected</option></select>
-   <p id="stateHelp" class="small stateHelp">Choose the state you want to represent. BrainChain uses it for group statistics.</p>
+   <label class="statePrivacy"><input type="checkbox" id="profileStatePrivate" class="statePrivacyCheck">Keep my state private</label>
+   <p id="stateHelp" class="small stateHelp">Other players can see your state unless you mark it private. Private states are visible to you and admins.</p>
    <div class="stack">
     <button id="choosePhoto" class="secondary" type="button">Choose Photo</button>
     <button id="takePhoto" class="secondary" type="button">Take Photo</button>
@@ -252,7 +255,8 @@ body.typing #guessForm button{padding:12px}
     <p><strong>State</strong><br><span id="accountState" tabindex="-1">Loading…</span></p>
     <form id="accountStateForm" class="hide">
      <select id="accountStatePicker" aria-label="Choose the state you want to represent" aria-describedby="accountStateHelp"><option value="">Choose a state</option></select>
-     <p id="accountStateHelp">Optional. BrainChain uses it for group statistics.</p>
+     <label class="statePrivacy"><input type="checkbox" id="accountStatePrivate" class="statePrivacyCheck">Keep my state private</label>
+     <p id="accountStateHelp">Optional. Other players can see your state unless you mark it private.</p>
      <button id="accountStateSave" type="submit" class="secondary" disabled>Save state</button>
     </form>
     <p id="accountStateStatus" role="status"></p>
@@ -384,6 +388,7 @@ body.typing #guessForm button{padding:12px}
 <dialog id="playerCard" class="guideDialog" aria-labelledby="playerCardName">
  <div class="guideHeader"><h2 id="playerCardName">Player card</h2><button id="closePlayerCard" class="secondary" type="button">Close</button></div>
  <div id="playerCardPhoto" class="profileBadge" aria-hidden="true"></div>
+ <p id="playerCardState" class="small hide"></p>
  <p id="playerCardMessage" role="status"></p>
  <div id="playerCardStats" class="statGrid"></div>
 </dialog>
@@ -498,13 +503,17 @@ async function openPlayerCard(name,picture){
  $('playerCardName').textContent=name;
  profilePicture($('playerCardPhoto'),picture.avatar,picture.photoPath);
  $('playerCardStats').replaceChildren();
+ $('playerCardState').classList.add('hide');
  $('playerCardMessage').textContent='Loading player stats…';
  playerCard.showModal();
  try{
-  const p=await rpc('bc_public_player_card',{p_screen_name:name});
+  const p=await rpc('bc_public_player_card_with_state',{p_screen_name:name});
   if(request!==playerCardRequest||!playerCard.open)return;
   if(!p)throw Error('This player card is unavailable.');
   $('playerCardMessage').textContent='';
+  const stateName=usStates.find(([, code]) => code === p.state)?.[2];
+  $('playerCardState').textContent=stateName||'';
+  $('playerCardState').classList.toggle('hide', !stateName);
   statTiles(p,$('playerCardStats'));
  }catch(e){
   if(request===playerCardRequest&&playerCard.open)$('playerCardMessage').textContent='Player stats are unavailable right now.';
@@ -627,8 +636,9 @@ $('saveProfile').onclick=async()=>{
  try{await auth();const name=$('profileName').value.trim();if(!/^[A-Za-z][A-Za-z0-9_]{2,19}$/.test(name))throw Error('Use 3–20 letters, numbers or underscores. Start with a letter.');
   if(profileFile)profilePhotoPath=await uploadPhoto(profileFile);
   const state=$('profileState').value||null;
-  await rpc('bc_profile_save_with_state',{p_name:name,p_avatar:selectedAvatar,p_photo:profilePhotoPath,p_state:state});
-  renderProfileIdentity({...profileData,screenName:name,avatar:selectedAvatar,photoPath:profilePhotoPath,state});
+  const statePrivate=!!state && $('profileStatePrivate').checked;
+  await rpc('bc_profile_save_with_state_visibility',{p_name:name,p_avatar:selectedAvatar,p_photo:profilePhotoPath,p_state:state,p_private:statePrivate});
+  renderProfileIdentity({...profileData,screenName:name,avatar:selectedAvatar,photoPath:profilePhotoPath,state,statePrivate});
   setProfileEditing(false);
   $('editProfile').focus();
   $('profileMessage').textContent='✓ Profile saved!';
@@ -1308,7 +1318,9 @@ for (const [, code, name] of usStates) accountStatePicker.add(new Option(name, c
 function renderAccountState(state) {
  const selected = usStates.find(([, code]) => code === state);
  stateSelector.value = selected ? state : '';
- accountState.textContent = selected ? selected[2] : 'Not selected';
+ const isPrivate = selected && profileData?.statePrivate;
+ $('profileStatePrivate').checked = !!isPrivate;
+ accountState.textContent = selected ? selected[2] + (isPrivate ? ' (Private)' : '') : 'Not selected';
  accountStateForm.classList.toggle('hide', !profileData || !!selected || !$('profileEditor').classList.contains('hide'));
 }
 
@@ -1318,11 +1330,15 @@ accountStateForm.onsubmit = async event => {
  const state = accountStatePicker.value;
  if (!profileData || !state || accountStateSave.disabled) return;
  const editButton = $('editProfile');
- editButton.disabled = accountStateSave.disabled = accountStatePicker.disabled = true;
+ const privacy = $('accountStatePrivate');
+ const statePrivate = privacy.checked;
+ editButton.disabled = accountStateSave.disabled = accountStatePicker.disabled = privacy.disabled = true;
  accountStateStatus.textContent = 'Saving state…';
  try {
-  await rpc('bc_profile_set_state', {p_state:state});
+  await rpc('bc_profile_set_state_visibility', {p_state:state,p_private:statePrivate});
   profileData.state = state;
+  profileData.statePrivate = statePrivate;
+  privacy.checked = false;
   renderAccountState(state);
   accountStatePicker.value = '';
   accountState.focus();
@@ -1330,7 +1346,7 @@ accountStateForm.onsubmit = async event => {
  } catch (error) {
   accountStateStatus.textContent = error.message || 'State could not be saved';
  } finally {
-  editButton.disabled = accountStatePicker.disabled = false;
+  editButton.disabled = accountStatePicker.disabled = privacy.disabled = false;
   accountStatePicker.onchange();
  }
 };
