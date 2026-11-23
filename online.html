@@ -874,7 +874,7 @@ function playTurnTone(){
 }
 let loadingGames=false;
 function matchResult(mine,theirs){
- return mine===theirs?'Tie game':mine>theirs?'You won!':'You lost';
+ return mine===theirs?'You tied':mine>theirs?'You won!':'You lost';
 }
 async function loadGames(){
  if(loadingGames||document.hidden)return;
