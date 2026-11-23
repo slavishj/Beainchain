@@ -902,7 +902,7 @@ $('hintInfo').onclick=()=>{
  const open=$('hintDetails').classList.toggle('hide')===false;
  $('hintInfo').setAttribute('aria-expanded',String(open));
 };
-$('share').onclick=async()=>{const url=invitation();let text='Your friend challenges you to BrainChain! 🧠';try{const p=await rpc('bc_profile_get');if(p.screenName)text='Your friend '+p.screenName+' challenges you to BrainChain! 🧠'}catch(e){}text+='\nGet in early on the next big word game. One chain and you’ll want a rematch. Tap to play!';if(navigator.share){try{await navigator.share({title:'BrainChain Challenge',text,url})}catch(e){}}else{await navigator.clipboard.writeText(text+' '+url);$('message').textContent='Invitation copied'}};
+$('share').onclick=async()=>{const url=invitation();let text='Your friend is challenging you to BrainChain! 🧠';try{const p=await rpc('bc_profile_get');if(p.screenName)text='Your friend '+p.screenName+' is challenging you to BrainChain! 🧠'}catch(e){}text+='\nGet in early on the next big word game. One chain and you’ll want a rematch. Tap to play!';if(navigator.share){try{await navigator.share({title:'BrainChain Challenge',text,url})}catch(e){}}else{await navigator.clipboard.writeText(text+' '+url);$('message').textContent='Invitation copied'}};
 $('copy').onclick=async()=>{try{await navigator.clipboard.writeText(invitation());$('message').textContent='Invitation link copied'}catch(e){$('message').textContent=invitation()}};
 $('leave').onclick=()=>{
  chatDialog.close();
