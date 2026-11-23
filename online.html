@@ -161,11 +161,21 @@ body.typing #guessForm button{padding:12px}
 .opponentGames summary small{margin-left:8px;color:#becce2;font-weight:600}
 .opponentGames summary .turnCount{color:#9cf9d8}
 .opponentGames .gameGroup{padding:0 8px 8px}
+#mailbox{width:min(560px,calc(100% - 24px));max-height:85dvh;overflow:auto;color:#f0f6ff}
+#mailbox::backdrop{background:#080f20b8}
+#mailbox label,#mailList small{display:block}
+#mailbox textarea,#mailbox select{width:100%;margin-top:5px}
+#mailbox textarea{background:#101d31;color:inherit;border:1px solid #546a8a;border-radius:8px;padding:8px;font:inherit}
+#mailList,#mailCompose,#mailThread{margin-top:12px}
+#mailEntries p{white-space:pre-wrap;overflow-wrap:anywhere;margin:5px 0 0}
+#mailEntries>div{background:#101d31;border-radius:10px;padding:10px}
+.mailBadge{display:inline-block;min-width:1.4em;margin-inline-start:5px;padding:2px 5px;border-radius:20px;background:#bb2446;color:white;font-size:.8em}
+.mailBadge.hide{display:none}
 </style>
 </head>
 <body>
 <main>
-<div class="toolbar"><a class="homeButton" href="./index.html">Home</a><button id="profileButton" class="secondary" type="button">👤 Profile</button><button id="howTo" class="secondary" type="button">How to Play</button><button id="soundToggle" class="secondary soundToggle" type="button" role="switch" aria-label="Sound" aria-checked="true">Sound <span id="soundState" aria-hidden="true">On</span><span class="soundTrack" aria-hidden="true"></span></button><button id="leave" class="secondary hide">My Games</button></div>
+<div class="toolbar"><a class="homeButton" href="./index.html">Home</a><button id="profileButton" class="secondary" type="button">👤 Profile <span id="profileMailBadge" class="mailBadge hide"></span></button><button id="howTo" class="secondary" type="button">How to Play</button><button id="soundToggle" class="secondary soundToggle" type="button" role="switch" aria-label="Sound" aria-checked="true">Sound <span id="soundState" aria-hidden="true">On</span><span class="soundTrack" aria-hidden="true"></span></button><button id="leave" class="secondary hide">My Games</button></div>
 <h1>Brain<span>Chain</span></h1><p class="small">ONLINE CHALLENGE · TEST VERSION</p>
 <div id="firstTimeTip" class="tutorialTip hide">
  <p><strong>New to BrainChain Online?</strong> Learn the rules with a sample turn.</p>
@@ -200,6 +210,11 @@ body.typing #guessForm button{padding:12px}
   <p class="profileAlert small" id="profileMessage" role="status"></p>
   <p class="small">Your photo and screen name will be visible to other players. This beta profile is linked to this browser; email account recovery is coming later.</p>
  </div>
+ <div class="card stack">
+  <button id="playerMailbox" type="button" class="secondary hide">Messages <span id="playerMailBadge" class="mailBadge hide"></span></button>
+  <button id="adminMailbox" type="button" class="secondary hide">Admin Mailbox <span id="adminMailBadge" class="mailBadge hide"></span></button>
+  <details><summary class="small">Account details</summary><button id="mailAccount" class="secondary" type="button">Show account ID</button><p id="mailAccountId" class="small"></p></details>
+ </div>
  <div class="card"><h2>Your Player Card</h2><div id="profileStats" class="statGrid"></div><ul class="small" style="padding-inline-start:1.25em">
   <li>Word scores are out of 100</li>
   <li>Game scores are out of 400</li>
@@ -207,6 +222,32 @@ body.typing #guessForm button{padding:12px}
  <div class="card"><h2>Head-to-Head Records</h2><div id="rivalStats">Loading your matchups...</div></div>
  <div class="card"><h2>Community Leaderboard</h2><p class="small">Highest average word score. Players qualify after 10 scored words.</p><div id="profileLeaderboard">Loading...</div></div>
 </section>
+<dialog id="mailbox" class="card" aria-labelledby="mailTitle">
+ <div class="gamesHeader"><h2 id="mailTitle">Messages</h2><button id="mailClose" type="button" class="secondary">Close</button></div>
+ <p id="mailStatus" class="small" role="status"></p>
+ <button id="mailNew" type="button" class="primary">New message</button>
+ <button id="mailBack" type="button" class="secondary hide">Back to inbox</button>
+ <div id="mailList" class="stack"></div>
+ <form id="mailCompose" class="stack hide">
+  <label id="mailCategory">Category<select id="mailKind"><option>Bug report</option><option>Design suggestion</option><option>Get help</option></select></label>
+  <label id="mailAudience" class="hide">Send to<select id="mailTo"><option value="">Choose audience</option><option value="all">Everyone</option><option value="player">One player</option></select></label>
+  <label id="mailRecipient" class="hide">Player account ID<input id="mailRecipientId" autocomplete="off"></label>
+  <label>Subject<input id="mailNewSubject" maxlength="100" required></label>
+  <label>What would you like us to know?<textarea id="mailBody" rows="4" maxlength="3600" required></textarea></label>
+  <label id="mailSteps">Steps to reproduce and expected result (optional)<textarea id="mailRepro" rows="3" maxlength="1200"></textarea></label>
+  <button id="mailSend" type="submit" class="primary">Send message</button>
+ </form>
+ <section id="mailThread" class="stack hide">
+  <h3 id="mailSubject"></h3>
+  <div id="mailEntries" class="stack"></div>
+  <button id="mailCopy" type="button" class="secondary">Copy for ChatGPT</button>
+  <textarea id="mailCopyText" class="hide" aria-label="Report formatted for ChatGPT" readonly></textarea>
+  <form id="mailReply" class="stack">
+   <label>Reply<textarea id="mailReplyBody" rows="3" maxlength="5000" required></textarea></label>
+   <button type="submit" class="primary">Send reply</button>
+  </form>
+ </section>
+</dialog>
 <section id="lobby" class="card stack">
  <div class="gamesHeader"><h2>My Games</h2><button type="button" id="refreshGames">Refresh</button></div>
  <button id="create" class="primary full">Create a challenge</button>
@@ -984,6 +1025,165 @@ $('refreshGames').onclick=loadGames;
 setInterval(()=>refresh(true),5000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){refresh(true);loadGames()}});
 setInterval(loadGames,15000);
+const mail = {admin:false, thread:null, busy:false};
+const mailDialog = $('mailbox');
+function mailRequest(p_action, fields={}) {
+ return rpc('bc_mailbox', {p_action, p_admin:mail.admin, ...fields});
+}
+function mailBadge(id, count) {
+ const badge = $(id);
+ badge.textContent = count > 99 ? '99+' : count;
+ badge.classList.toggle('hide', !count);
+ badge.setAttribute('aria-label', count+' unread conversations');
+}
+async function refreshMailboxStatus() {
+ if (document.hidden) return;
+ try {
+  const status = await mailRequest('status', {p_admin:false});
+  $('playerMailbox').classList.toggle('hide', !status.enabled);
+  $('adminMailbox').classList.toggle('hide', !status.admin);
+  mailBadge('profileMailBadge', status.playerUnread+status.adminUnread);
+  mailBadge('playerMailBadge', status.playerUnread);
+  mailBadge('adminMailBadge', status.adminUnread);
+ } catch (error) {
+  // A short connection interruption leaves the last known badges in place.
+ }
+}
+function mailDate(value) { return new Date(value).toLocaleString(); }
+function mailText(tag, text) {
+ const element = document.createElement(tag);
+ element.textContent = text;
+ return element;
+}
+async function mailTask(action) {
+ if (mail.busy) return;
+ mail.busy = true;
+ $('mailStatus').textContent = '';
+ try { await action(); }
+ catch (error) { $('mailStatus').textContent = error.message || 'Messages could not be loaded.'; }
+ finally { mail.busy = false; }
+}
+async function listMail() {
+ const threads = await mailRequest('list');
+ mail.thread = null;
+ $('mailList').replaceChildren();
+ $('mailThread').classList.add('hide');
+ $('mailCompose').classList.add('hide');
+ $('mailList').classList.remove('hide');
+ $('mailNew').classList.remove('hide');
+ $('mailBack').classList.add('hide');
+ if (!threads.length) $('mailList').append(mailText('p','No messages yet'));
+ for (const thread of threads) {
+  const row = mailText('button', (thread.unread?'🔴 ':'') + thread.subject);
+  row.type = 'button';
+  row.className = 'secondary';
+  row.append(mailText('small', thread.kind+' · '+mailDate(thread.date)));
+  row.onclick = () => mailTask(() => openMail(thread));
+  $('mailList').append(row);
+ }
+ refreshMailboxStatus();
+}
+function showMailDetail(id) {
+ $('mailList').classList.add('hide');
+ $('mailNew').classList.add('hide');
+ $('mailBack').classList.remove('hide');
+ $(id).classList.remove('hide');
+}
+async function openMail(thread) {
+ const entries = await mailRequest('open', {p_thread:thread.id});
+ mail.thread = thread;
+ $('mailSubject').textContent = thread.subject;
+ $('mailEntries').replaceChildren();
+ for (const entry of entries) {
+  const item = document.createElement('div');
+  item.append(mailText('small', (entry.admin?'BrainChain Admin':'Player')+' · '+mailDate(entry.date)),
+    mailText('p', entry.body));
+  $('mailEntries').append(item);
+ }
+ $('mailReply').classList.toggle('hide', thread.broadcast);
+ const copy = $('mailCopy');
+ copy.classList.toggle('hide', !mail.admin || thread.kind === 'Official notice');
+ const report = ['BrainChain tester feedback', 'Type: '+thread.kind, 'Subject: '+thread.subject,
+  ...entries.filter(entry => !entry.admin).map((entry, index) =>
+   (index?'Player follow-up':'Original report')+' ('+mailDate(entry.date)+')\n'+entry.body)].join('\n\n');
+ copy.onclick = async () => {
+  try { await navigator.clipboard.writeText(report); $('mailStatus').textContent = 'Copied for ChatGPT'; }
+  catch (error) { $('mailCopyText').value = report; $('mailCopyText').classList.remove('hide'); $('mailCopyText').select(); }
+ };
+ $('mailCopyText').classList.add('hide');
+ showMailDetail('mailThread');
+ if (entries.length) {
+  await mailRequest('read', {p_thread:thread.id, p_seen:entries[entries.length-1].id});
+  refreshMailboxStatus();
+ }
+}
+function openMailbox(admin) {
+ mail.admin = admin;
+ $('mailList').replaceChildren();
+ $('mailList').classList.remove('hide');
+ for (const id of ['mailThread','mailCompose','mailNew','mailBack']) $(id).classList.add('hide');
+ $('mailTitle').textContent = admin?'Admin Mailbox':'Messages';
+ $('mailNew').textContent = admin?'New official notice':'New message';
+ mailDialog.showModal();
+ mailTask(listMail);
+}
+$('playerMailbox').onclick = () => openMailbox(false);
+$('adminMailbox').onclick = () => openMailbox(true);
+$('mailClose').onclick = () => { if (!mail.busy) mailDialog.close(); };
+mailDialog.addEventListener('cancel', event => { if (mail.busy) event.preventDefault(); });
+$('mailBack').onclick = () => mailTask(listMail);
+$('mailNew').onclick = () => {
+ $('mailCompose').reset();
+ $('mailCategory').classList.toggle('hide', mail.admin);
+ $('mailAudience').classList.toggle('hide', !mail.admin);
+ $('mailRecipient').classList.add('hide');
+ $('mailRecipientId').required = false;
+ $('mailSend').textContent = mail.admin?'Send official notice':'Send message';
+ updateMailFields();
+ showMailDetail('mailCompose');
+};
+$('mailTo').onchange = () => {
+ const targeted = $('mailTo').value === 'player';
+ $('mailRecipient').classList.toggle('hide', !targeted);
+ $('mailRecipientId').required = targeted;
+};
+function updateMailFields() {
+ $('mailSteps').classList.toggle('hide', mail.admin || $('mailKind').value !== 'Bug report');
+}
+$('mailKind').onchange = updateMailFields;
+$('mailCompose').onsubmit = event => {
+ event.preventDefault();
+ mailTask(async () => {
+  if (mail.admin && !$('mailTo').value) throw Error('Choose who should receive this notice');
+  const details = $('mailBody').value.trim();
+  if (!details) throw Error('Enter a message');
+  const steps = $('mailRepro').value.trim();
+  const body = !mail.admin && $('mailKind').value === 'Bug report' && steps
+   ? 'What happened\n'+details+'\n\nSteps to reproduce / expected result\n'+steps : details;
+  await mailRequest('new', {p_subject:$('mailNewSubject').value, p_kind:$('mailKind').value, p_body:body,
+   p_recipient:mail.admin && $('mailTo').value === 'player'?$('mailRecipientId').value.trim():null});
+  $('mailCompose').reset();
+  await listMail();
+  $('mailStatus').textContent = 'Message sent';
+ });
+};
+$('mailReply').onsubmit = event => {
+ event.preventDefault();
+ mailTask(async () => {
+  const thread = mail.thread;
+  await mailRequest('reply', {p_thread:thread.id, p_body:$('mailReplyBody').value});
+  $('mailReply').reset();
+  await openMail(thread);
+ });
+};
+$('mailAccount').onclick = async () => {
+ try { await auth(); $('mailAccountId').textContent = session.user.id; }
+ catch (error) { $('mailAccountId').textContent = 'Account ID unavailable'; }
+};
+setInterval(refreshMailboxStatus, 15000);
+document.addEventListener('visibilitychange', refreshMailboxStatus);
+refreshMailboxStatus();
+
 (async()=>{try{await auth();let c=new URLSearchParams(location.search).get('invite');if(c){await rpc('brainchain_join_game',{p_code:c}).catch(async()=>{let g=await rpc('bc_view',{p_code:c});if(!g)throw Error('Could not join')});await show(c)}else{await loadGames();if(location.hash==='#profile')await openProfile()}}catch(e){err(e)}})();
 </script>
 </body>
