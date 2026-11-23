@@ -112,3 +112,52 @@ revoke all on function public.bc_profile_set_state(text) from public, anon, auth
 grant execute on function public.bc_profile_set_state(text) to authenticated;
 
 commit;
+
+begin;
+
+alter table public.bc_profile_states add column if not exists is_private boolean not null default true;
+
+create or replace function public.bc_profile_get_with_state()
+returns jsonb language sql security definer set search_path = '' as $
+  select public.bc_profile_get() || coalesce((
+    select jsonb_build_object('state', state_code, 'statePrivate', is_private)
+    from public.bc_profile_states where user_id = auth.uid()
+  ), jsonb_build_object('state', null, 'statePrivate', false));
+$;
+
+create or replace function public.bc_profile_set_state_visibility(p_state text, p_private boolean)
+returns void language plpgsql security definer set search_path = '' as $
+begin
+  perform public.bc_profile_set_state(p_state);
+  if p_state is not null then
+    update public.bc_profile_states set is_private = coalesce(p_private, true) where user_id = auth.uid();
+  end if;
+end;
+$;
+
+create or replace function public.bc_profile_save_with_state_visibility(p_name text, p_avatar text, p_photo text, p_state text, p_private boolean)
+returns void language plpgsql security definer set search_path = '' as $
+begin
+  if auth.uid() is null then raise insufficient_privilege; end if;
+  perform public.bc_profile_save(p_name, p_avatar, p_photo);
+  perform public.bc_profile_set_state_visibility(p_state, p_private);
+end;
+$;
+
+create or replace function public.bc_public_player_card_with_state(p_screen_name text)
+returns jsonb language sql security definer set search_path = '' as $
+  select public.bc_public_player_card(p_screen_name) || jsonb_build_object('state', (
+    select s.state_code from public.brainchain_profiles p
+      join public.bc_profile_states s on s.user_id = p.user_id
+    where lower(p.screen_name) = lower(p_screen_name)
+      and (not s.is_private or s.user_id = auth.uid() or exists (
+        select 1 from public.bc_mail_admins where user_id = auth.uid()
+      ))
+    limit 1
+  ));
+$;
+
+revoke all on function public.bc_profile_set_state_visibility(text,boolean), public.bc_profile_save_with_state_visibility(text,text,text,text,boolean), public.bc_public_player_card_with_state(text) from public, anon, authenticated;
+grant execute on function public.bc_profile_set_state_visibility(text,boolean), public.bc_profile_save_with_state_visibility(text,text,text,text,boolean), public.bc_public_player_card_with_state(text) to authenticated;
+
+commit;
