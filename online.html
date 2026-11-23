@@ -90,6 +90,10 @@ body.typing #guessForm button{padding:12px}
 .gameItem .playerLink{color:#f4f8ff;text-decoration:none}
 .gameLabel{display:block;font-size:12px;color:#becce2;overflow-wrap:anywhere}
 .gameProgress{display:block;color:#becce2;font-size:12px;margin-top:2px}
+.gameProgress[data-outcome]{font-weight:800}
+.gameProgress[data-outcome="win"]{color:#86efac}
+.gameProgress[data-outcome="tie"]{color:#fde68a}
+.gameProgress[data-outcome="loss"]{color:#fda4a4}
 .gameOpen{display:grid;justify-items:center;gap:2px;padding:7px 10px;min-height:48px;font-size:13px}
 .gameScore{font-size:17px;font-variant-numeric:tabular-nums;white-space:nowrap}
 .gameRename{grid-column:1/-1;justify-self:start;border-radius:8px;background:none;color:#becce2;font-size:12px;min-height:44px;padding:5px 8px}
@@ -832,7 +836,10 @@ async function loadGames(){
      const myPoints=mine===1?view?.playerOnePoints:view?.playerTwoPoints;
      const theirPoints=mine===1?view?.playerTwoPoints:view?.playerOnePoints;
      if(!Number.isFinite(myPoints)||!Number.isFinite(theirPoints))return;
-     if(completed)progress.textContent=matchResult(myPoints,theirPoints);
+     if(completed){
+      progress.textContent=matchResult(myPoints,theirPoints);
+      progress.dataset.outcome=myPoints===theirPoints?'tie':myPoints>theirPoints?'win':'loss';
+     }
      const score=document.createElement('span');score.className='gameScore';
      score.textContent=myPoints+'–'+theirPoints;
      const caption=document.createElement('span');caption.textContent='You – Friend';
