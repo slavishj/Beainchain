@@ -201,12 +201,15 @@ input.statePrivacyCheck{width:18px;min-height:18px;margin:0;accent-color:#7be9c3
 #mapStatus:empty,#mapSummary:empty{display:none}
 .modeHeading{width:fit-content;margin:8px 0 0;padding:5px 10px;border:1px solid #4c766f;border-radius:8px;background:#1b3b45;color:#a4f6d8;font-size:18px;font-weight:850;line-height:1.25}
 main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
+.modeHeading strong,.modeTagline{display:block}
+.modeTagline{margin-top:4px;color:#a4f6d8;font-size:14px;font-weight:650;line-height:1.35}
+.modeHeading strong{color:#f4f8ff}
 </style>
 </head>
 <body>
 <main>
 <div class="toolbar onlineToolbar"><a class="homeButton" href="./index.html#home" aria-label="Return to Home">⌂ Home</a><button id="howTo" class="secondary" type="button">How to Play</button><button id="profileButton" class="secondary" type="button">👤 Profile <span id="profileMailBadge" class="mailBadge hide"></span></button><button id="leave" class="secondary hide">My Games</button></div>
-<h1>Brain<span>Chain</span></h1><p class="modeHeading">Online Play – One chain, miles apart!</p>
+<h1>Brain<span>Chain</span></h1><p class="modeHeading"><strong>Online Play</strong><span class="modeTagline">One chain, miles apart!</span></p>
 <div id="firstTimeTip" class="tutorialTip hide">
  <p><strong>New to BrainChain Online?</strong> Learn the rules with a sample turn.</p>
  <button id="firstTimeWatch" class="primary" type="button">Start guide</button>
