@@ -178,8 +178,12 @@ body.typing #guessForm button{padding:12px}
 #mailEntries>div{background:#101d31;border-radius:10px;padding:10px}
 .mailBadge{display:inline-block;min-width:1.4em;margin-inline-start:5px;padding:2px 5px;border-radius:20px;background:#bb2446;color:white;font-size:.8em}
 .mailBadge.hide{display:none}
-.profileForm select,#mapState{width:100%;background:#101a30;color:#f4f8ff;border:1px solid #677895;border-radius:10px;padding:10px;font:inherit;min-height:44px}
+.profileForm select,#mapState,#accountStatePicker{width:100%;background:#101a30;color:#f4f8ff;border:1px solid #677895;border-radius:10px;padding:10px;font:inherit;min-height:44px}
 .profileForm .stateHelp{margin:0}
+#accountStateForm{display:grid;gap:8px}
+#accountStateForm p,#accountStateStatus{margin:0}
+#accountStateStatus:empty{display:none}
+#accountStateSave{min-height:44px;justify-self:start}
 #playerMap{width:min(680px,calc(100% - 24px))}
 #mapGraphic{display:block;width:100%;height:auto;margin:12px 0}
 #mapGraphic path{fill:#53637e;stroke:#111e34;stroke-width:1.2;fill-rule:evenodd;cursor:pointer}
@@ -244,6 +248,13 @@ body.typing #guessForm button{padding:12px}
    <div class="small" style="overflow-wrap:anywhere">
     <p><strong>Account ID</strong><br><span id="mailAccountId">Loading…</span></p>
     <p><strong>Username</strong><br><span id="accountUsername">Loading…</span></p>
+    <p><strong>State</strong><br><span id="accountState" tabindex="-1">Loading…</span></p>
+    <form id="accountStateForm" class="hide">
+     <select id="accountStatePicker" aria-label="Choose the state you want to represent" aria-describedby="accountStateHelp"><option value="">Choose a state</option></select>
+     <p id="accountStateHelp">Optional. BrainChain uses it for group statistics.</p>
+     <button id="accountStateSave" type="submit" class="secondary" disabled>Save state</button>
+    </form>
+    <p id="accountStateStatus" role="status"></p>
     <p><strong>Email</strong><br><span id="accountEmail">Loading…</span></p>
    </div>
   </details>
@@ -503,7 +514,7 @@ function renderProfileIdentity(p){
  if(profilePhotoPreview){URL.revokeObjectURL(profilePhotoPreview);profilePhotoPreview=''}
  $('profileName').value=p.screenName||'';$('profilePhoto').value='';$('cameraPhoto').value='';$('profileDisplay').textContent=p.screenName||'Create your player profile';
  $('accountUsername').textContent=p.screenName||'Not set yet';
- $('profileState').value=p.state||'';
+ renderAccountState(p.state);
  profilePicture($('profilePreview'),selectedAvatar,profilePhotoPath);drawAvatars();
  $('editProfile').disabled=false;
 }
@@ -547,6 +558,7 @@ function showAvatarChoices(show){
 $('chooseAvatar').onclick=()=>showAvatarChoices($('avatarChoices').classList.contains('hide'));
 function setProfileEditing(editing){
  $('profileEditor').classList.toggle('hide',!editing);
+ renderAccountState(profileData?.state);
  $('editProfile').setAttribute('aria-expanded',String(editing));
  if(!editing)showAvatarChoices(false);
 }
@@ -571,7 +583,10 @@ async function openProfile(){
  $('profileMessage').textContent='';window.scrollTo(0,0);
  try{await loadProfile()}catch(e){
   $('profileMessage').textContent=e.message||String(e);
-  if(!profileData)$('accountUsername').textContent='Unavailable';
+  if(!profileData){
+   $('accountUsername').textContent='Unavailable';
+   $('accountState').textContent='Unavailable';
+  }
  }
 }
 function closeProfile(){if($('saveProfile').disabled)return;setProfileEditing(false);profileOpen=false;$('profileButton').classList.remove('hide');$('profilePanel').classList.add('hide');$('lobby').classList.toggle('hide',!!code);$('match').classList.toggle('hide',!code);$('firstTimeTip').classList.add('hide');window.scrollTo(0,0)}
@@ -1281,6 +1296,43 @@ for (const [, code, name] of usStates) {
  stateSelector.add(new Option(name, code));
  mapSelector.add(new Option(name, code));
 }
+
+const accountState = $('accountState');
+const accountStateForm = $('accountStateForm');
+const accountStatePicker = $('accountStatePicker');
+const accountStateSave = $('accountStateSave');
+const accountStateStatus = $('accountStateStatus');
+for (const [, code, name] of usStates) accountStatePicker.add(new Option(name, code));
+
+function renderAccountState(state) {
+ const selected = usStates.find(([, code]) => code === state);
+ stateSelector.value = selected ? state : '';
+ accountState.textContent = selected ? selected[2] : 'Not selected';
+ accountStateForm.classList.toggle('hide', !profileData || !!selected || !$('profileEditor').classList.contains('hide'));
+}
+
+accountStatePicker.onchange = () => { accountStateSave.disabled = !accountStatePicker.value; };
+accountStateForm.onsubmit = async event => {
+ event.preventDefault();
+ const state = accountStatePicker.value;
+ if (!profileData || !state || accountStateSave.disabled) return;
+ const editButton = $('editProfile');
+ editButton.disabled = accountStateSave.disabled = accountStatePicker.disabled = true;
+ accountStateStatus.textContent = 'Saving state…';
+ try {
+  await rpc('bc_profile_set_state', {p_state:state});
+  profileData.state = state;
+  renderAccountState(state);
+  accountStatePicker.value = '';
+  accountState.focus();
+  accountStateStatus.textContent = 'State saved';
+ } catch (error) {
+  accountStateStatus.textContent = error.message || 'State could not be saved';
+ } finally {
+  editButton.disabled = accountStatePicker.disabled = false;
+  accountStatePicker.onchange();
+ }
+};
 
 const playerMap = $('playerMap');
 const mapGraphic = $('mapGraphic');
