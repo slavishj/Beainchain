@@ -695,6 +695,9 @@ function playTurnTone(){
  if(!document.hidden)playFeedbackSound(true,[523,659,1047]);
 }
 let loadingGames=false;
+function matchResult(mine,theirs){
+ return mine===theirs?'Tie game':mine>theirs?'You won!':'You lost';
+}
 async function loadGames(){
  if(loadingGames||document.hidden)return;
  loadingGames=true;
@@ -713,8 +716,12 @@ async function loadGames(){
   }
   if(newTurn)playTurnTone();
   if($('lobby').classList.contains('hide'))return;
-  $('gamesStatus').textContent=items.length?'':'No open games yet. Create a challenge to get started.';
-  const groups=['Your turn','Their turn','Waiting for a friend'].map((title,index)=>{
+  const recent=await fetch(BASE+'/rest/v1/brainchain_games?select=invite_code,status,current_player,player_one_id,player_two_id,word_number,created_at&status=eq.completed&order=created_at.desc,invite_code.desc&limit=10',{
+   headers:{apikey:KEY,Authorization:'Bearer '+session.access_token}
+  }).then(response=>response.ok?response.json():[]).catch(()=>[]);
+  if($('lobby').classList.contains('hide'))return;
+  $('gamesStatus').textContent=items.length||recent.length?'':'No open games yet. Create a challenge to get started.';
+  const groups=['Your turn','Their turn','Waiting for a friend','Recently completed'].map((title,index)=>{
    const group=document.createElement('section');
    group.className='gameGroup'+(index===0?' yourTurn':'');
    const heading=document.createElement('h3');heading.textContent=title;
@@ -722,22 +729,23 @@ async function loadGames(){
    return group;
   });
   const names=labels();
-  items.forEach((g,index)=>{
+  [...items,...recent].forEach((g,index)=>{
    const mine=g.player_one_id===session.user.id?1:2;
    const waiting=g.status==='waiting';
-   const group=groups[waiting?2:g.current_player===mine?0:1];
-   const label=names[g.invite_code]||'Game '+(items.length-index);
+   const completed=g.status==='completed';
+   const group=groups[completed?3:waiting?2:g.current_player===mine?0:1];
+   const label=names[g.invite_code]||(completed?'Completed game':'Game '+(items.length-index));
    const item=document.createElement('div');item.className='gameItem';
    const summary=document.createElement('div');
    const opponent=document.createElement('div');
    opponent.textContent=waiting?'Invitation pending':'Friend';
    const gameLabel=document.createElement('span');gameLabel.className='gameLabel';gameLabel.textContent=label;
    const progress=document.createElement('span');progress.className='gameProgress';
-   if(!waiting)progress.textContent='Word '+Math.min(4,g.word_number)+' of 4';
+   if(!waiting&&!completed)progress.textContent='Word '+Math.min(4,g.word_number)+' of 4';
    summary.append(opponent,gameLabel,progress);
    const open=document.createElement('button');
    open.type='button';open.className='gameOpen'+(group===groups[0]?' primary':' secondary');
-   open.textContent='Open game';
+   open.textContent=completed?'View result':'Open game';
    open.setAttribute('aria-label','Open '+label);
    open.onclick=()=>show(g.invite_code);
    const rename=document.createElement('button');
@@ -757,6 +765,7 @@ async function loadGames(){
      const myPoints=mine===1?view?.playerOnePoints:view?.playerTwoPoints;
      const theirPoints=mine===1?view?.playerTwoPoints:view?.playerOnePoints;
      if(!Number.isFinite(myPoints)||!Number.isFinite(theirPoints))return;
+     if(completed)progress.textContent=matchResult(myPoints,theirPoints);
      const score=document.createElement('span');score.className='gameScore';
      score.textContent=myPoints+'–'+theirPoints;
      const caption=document.createElement('span');caption.textContent='You – Friend';
@@ -850,11 +859,15 @@ function render(g){
   if(g.status==='active'&&myTurn&&started&&g.clue)addWord(g.clue,true);
   if(!chain.childElementCount){const hidden=document.createElement('div');hidden.className='chainHidden';hidden.textContent='Your chain will appear here.';chain.append(hidden)}
  }
- $('turnInfo').textContent=g.status==='waiting'?'Share the invitation, then wait for your friend.':g.status==='completed'?'Both players finished!':myTurn?(started?'Every incorrect guess reveals a letter and costs 20 points.':'Tap GO when you’re ready.'):'';
+ $('turnInfo').textContent=g.status==='waiting'?'Share the invitation, then wait for your friend.':g.status==='completed'?'Final score':myTurn?(started?'Every incorrect guess reveals a letter and costs 20 points.':'Tap GO when you’re ready.'):'';
  const headline=$('headline');
- if(g.status==='active')headline.dataset.turn=myTurn?'mine':'theirs';
+ const completed=g.status==='completed';
+ const mine=g.myPlayer===1?g.playerOnePoints:g.playerTwoPoints;
+ const theirs=g.myPlayer===1?g.playerTwoPoints:g.playerOnePoints;
+ if(completed)headline.dataset.turn=mine>theirs?'mine':'theirs';
+ else if(g.status==='active')headline.dataset.turn=myTurn?'mine':'theirs';
  else headline.removeAttribute('data-turn');
- const title=g.status==='completed'?(g.playerOnePoints===g.playerTwoPoints?'It’s a tie!':(g.myPlayer===1?g.playerOnePoints>g.playerTwoPoints:g.playerTwoPoints>g.playerOnePoints)?'You win! 🎉':'Great match!'):g.status==='active'?(myTurn?'Your turn':'Waiting for your opponent'):'BrainChain Challenge';
+ const title=completed?matchResult(mine,theirs):g.status==='active'?(myTurn?'Your turn':'Waiting for your opponent'):'BrainChain Challenge';
  if(headline.textContent!==title)headline.textContent=title;
  $('inviteCodeLabel').textContent='Invitation code: '+code;
  $('pointsAvailable').textContent='Worth '+g.pointsAvailable+' points';
@@ -883,6 +896,7 @@ function submitGuess(guess,revealLetter=false){
   await refresh();
   const movedOn=game?.currentPlayer!==previousPlayer||game?.wordNumber!==previousWord||game?.status==='completed';
   if(movedOn)$('answer').value='';
+  if(game?.status==='completed')return;
   if(correct){showFeedback(true,'CORRECT! +'+earned+' points!')}
   else if(movedOn){showFeedback(false,'All letters revealed. Word complete — 0 points.')}
   else{
