@@ -226,7 +226,11 @@ body.typing #guessForm button{padding:12px}
   <button id="adminMailbox" type="button" class="secondary hide">Admin Mailbox <span id="adminMailBadge" class="mailBadge hide"></span></button>
   <details id="accountDetails">
    <summary class="small">Account details</summary>
-   <p class="small" style="overflow-wrap:anywhere"><strong>Account ID</strong><br><span id="mailAccountId">Loading…</span></p>
+   <div class="small" style="overflow-wrap:anywhere">
+    <p><strong>Account ID</strong><br><span id="mailAccountId">Loading…</span></p>
+    <p><strong>Username</strong><br><span id="accountUsername">Loading…</span></p>
+    <p><strong>Email</strong><br><span id="accountEmail">Loading…</span></p>
+   </div>
   </details>
  </div>
  <div class="card"><h2>Your Player Card</h2><div id="profileStats" class="statGrid"></div><ul class="small" style="padding-inline-start:1.25em">
@@ -471,6 +475,7 @@ function renderProfileIdentity(p){
  profileData=p;selectedAvatar=p.avatar||'🧠';profilePhotoPath=p.photoPath||null;profileFile=null;
  if(profilePhotoPreview){URL.revokeObjectURL(profilePhotoPreview);profilePhotoPreview=''}
  $('profileName').value=p.screenName||'';$('profilePhoto').value='';$('cameraPhoto').value='';$('profileDisplay').textContent=p.screenName||'Create your player profile';
+ $('accountUsername').textContent=p.screenName||'Not set yet';
  profilePicture($('profilePreview'),selectedAvatar,profilePhotoPath);drawAvatars();
  $('editProfile').disabled=false;
 }
@@ -536,7 +541,10 @@ async function openProfile(){
  $('editProfile').disabled=true;
  profileOpen=true;$('profileButton').classList.add('hide');$('profilePanel').classList.remove('hide');$('lobby').classList.add('hide');$('match').classList.add('hide');$('firstTimeTip').classList.add('hide');
  $('profileMessage').textContent='';window.scrollTo(0,0);
- try{await loadProfile()}catch(e){$('profileMessage').textContent=e.message||String(e)}
+ try{await loadProfile()}catch(e){
+  $('profileMessage').textContent=e.message||String(e);
+  if(!profileData)$('accountUsername').textContent='Unavailable';
+ }
 }
 function closeProfile(){if($('saveProfile').disabled)return;setProfileEditing(false);profileOpen=false;$('profileButton').classList.remove('hide');$('profilePanel').classList.add('hide');$('lobby').classList.toggle('hide',!!code);$('match').classList.toggle('hide',!code);$('firstTimeTip').classList.add('hide');window.scrollTo(0,0)}
 $('profileButton').onclick=openProfile;$('closeProfile').onclick=closeProfile;
@@ -1226,11 +1234,14 @@ $('mailReply').onsubmit = event => {
 $('accountDetails').addEventListener('toggle', async event => {
  if (!event.currentTarget.open) return;
  const accountId = $('mailAccountId');
+ const email = $('accountEmail');
  try {
   await auth();
   accountId.textContent = session.user.id;
+  email.textContent = session.user.email || 'Not linked yet';
  } catch {
   accountId.textContent = 'Unavailable';
+  email.textContent = 'Unavailable';
  }
 });
 setInterval(refreshMailboxStatus, 15000);
