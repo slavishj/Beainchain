@@ -2,44 +2,44 @@
  const completedChain = {
   title: 'Completed word chain',
   visual: '<figure><figcaption>Every word is filled in</figcaption><ol class="bcGuideChain"><li><b>FIRE</b></li><li><span>Fire truck</span><b>TRUCK</b></li><li><span>Truck stop</span><b>STOP</b></li><li><span>Stop sign</span><b>SIGN</b></li><li><span>Sign post</span><b>POST</b></li></ol></figure>',
-  text: 'Read from top to bottom. Each word makes a familiar pair with the word right above it.'
+  bullets: ["Read down from <b>FIRE</b> to <b>POST</b>.", "Each word makes a phrase with the word above it."]
  };
  const firstGuess = {
   title: 'Guess the next word',
-  text: 'Look at <b>FIRE</b>. What word starts with <b>T</b>, fills all five spaces, and goes after FIRE?',
-  visual: '<div class="bcGuideClue"><b>FIRE</b><span aria-hidden="true">↓</span><b aria-label="T followed by four blanks">T _ _ _ _</b></div><details><summary>Show answer</summary><p>Type <b>TRUCK</b> and tap <b>GUESS</b>. FIRE + TRUCK makes <b>fire truck</b>.</p></details>'
+  bullets: ["Start with <b>FIRE</b>.", "Find a five-letter word that starts with <b>T</b>.", "Put it after <b>FIRE</b> to make a familiar phrase."],
+  visual: '<div class="bcGuideClue"><b>FIRE</b><span aria-hidden="true">↓</span><b aria-label="T followed by four blanks">T _ _ _ _</b></div><details><summary>Show answer</summary><ul class="bcGuideBullets"><li>Type <b>TRUCK</b> and tap <b>GUESS</b>.</li><li><b>FIRE + TRUCK</b> makes <b>fire truck</b>.</li></ul></details>'
  };
  const guides = {
   solo: {
    name: 'Solo Play',
    slides: [
-    {title:'Start your chain', text:'Tap <b>START CHAIN</b> to see the first word and clue. Take your time. There’s no timer in Solo Play.'},
+    {title:'Start your chain', bullets: ["Tap <b>START CHAIN</b> to see your first clue.", "Take your time. Solo Play has no timer."]},
     firstGuess,
     completedChain,
-    {title:'Need another letter?', text:'Tap <b>Hint</b> or try a guess. A hint or a wrong guess shows one more letter. If the whole word is shown, the game moves on for you.'},
-    {title:'See your score', text:'A finished chain is worth <b>100 points</b> with no misses or hints. Each miss or hint takes off 10 points, down to 10 points for the chain. Tap <b>NEXT CHAIN</b> to keep playing.'}
+    {title:'Need another letter?', bullets: ["Tap <b>Hint</b> or make a guess.", "A hint or a wrong guess shows one more letter.", "If the whole word is shown, the game moves to the next word."]},
+    {title:'See your score', bullets: ["Earn <b>100 points</b> for finishing without hints or misses.", "Each hint or miss costs 10 points. You’ll earn at least 10 points per chain.", "Tap <b>NEXT CHAIN</b> to keep playing."]}
    ]
   },
   party: {
    name: 'Pass & Play',
    slides: [
-    {title:'Set up your teams', text:'Choose your teams. Pick <b>Seconds per guess</b> or choose <b>No timer</b>. Set <b>First to Win</b>, then tap <b>START GAME</b>.'},
-    {title:'Hand over the phone', text:'Give the phone to the team named on screen. That team taps <b>START TURN</b> to see its clue. Each team works on the same chain and picks up where it left off.'},
+    {title:'Set up your teams', bullets: ["Choose your teams.", "Pick <b>Seconds per guess</b> or choose <b>No timer</b>.", "Set <b>First to Win</b> to choose how many rounds a team needs to win.", "Tap <b>START GAME</b>."]},
+    {title:'Hand over the phone', bullets: ["Give the phone to the team named on screen.", "Tap <b>START TURN</b> to see the clue.", "Every team gets the same chain and picks up where it left off."]},
     firstGuess,
     completedChain,
-    {title:'Keep guessing or pass the phone', text:'Get it right and your team keeps playing. A wrong guess, running out of time, or tapping <b>PASS TURN</b> counts as one miss and shows another letter. Tap <b>NEXT TEAM</b> and hand over the phone.'},
-    {title:'See who won the round', text:'Everyone finishes their chain. The team with the fewest misses wins the round. If teams tie for fewest misses, they each get a round win. Reach your <b>First to Win</b> goal to finish the match.'}
+    {title:'Keep guessing or pass the phone', bullets: ["Guess right to keep playing.", "A wrong guess, a timeout, or <b>PASS TURN</b> counts as one miss and shows another letter.", "Tap <b>NEXT TEAM</b> and hand over the phone."]},
+    {title:'See who won the round', bullets: ["Finish the chain with your team.", "The team with the fewest misses wins the round. Tied teams each get a win.", "Reach the <b>First to Win</b> goal to finish the match."]}
    ]
   },
   online: {
    name: 'Online Play',
    slides: [
-    {title:'Invite a friend', text:'In <b>My Games</b>, tap <b>Create a challenge</b>. Tap <b>Text invitation</b> or <b>Copy invitation link</b> and send the link to your friend. They open the link to join.'},
-    {title:'Check whose turn it is', text:'In <b>My Games</b>, open your friend’s group and look for <b>Your turn</b>. Tap <b>Open game</b>, then <b>GO!</b> to see your clue.'},
+    {title:'Invite a friend', bullets: ["In <b>My Games</b>, tap <b>Create a challenge</b>.", "Use <b>Text invitation</b> or <b>Copy invitation link</b> to share the link.", "Your friend opens the link to join."]},
+    {title:'Check whose turn it is', bullets: ["In <b>My Games</b>, open your friend’s group.", "Find the match that says <b>Your turn</b> and tap <b>Open game</b>.", "Tap <b>GO!</b> to see your clue."]},
     firstGuess,
     completedChain,
-    {title:'Try again or ask for a hint', text:'Each word starts at <b>100 points</b>. A wrong guess or <b>Hint</b> shows one more letter and takes off 20 points, down to zero. If the last letter is shown, your turn on that word ends at zero.', visual:'<div class="bcGuideClue"><b>T _ _ _ _ · 100 points</b><span>After one hint or miss</span><b>T R _ _ _ · 80 points</b></div>'},
-    {title:'Take turns and check the score', text:'You both get a turn on each missing word. After four words each, the higher total wins. Matching scores mean a tie. Check <b>My Games</b> later to see if it’s your turn again.'}
+    {title:'Try again or ask for a hint', bullets: ["Each word starts at <b>100 points</b>.", "A wrong guess or <b>Hint</b> shows one letter and costs 20 points.", "If the last letter is shown, your turn ends at 0 points."], visual:'<div class="bcGuideClue"><b>T _ _ _ _ · 100 points</b><span>After one hint or miss</span><b>T R _ _ _ · 80 points</b></div>'},
+    {title:'Take turns and check the score', bullets: ["Take turns guessing each missing word.", "After four words each, the higher total wins. Equal scores are a tie.", "Check <b>My Games</b> later to see if it’s your turn."]}
    ]
   }
  };
@@ -64,7 +64,8 @@
   index = position;
   const card = deck.slides[index];
   step.textContent = `Step ${index + 1} of ${deck.slides.length}`;
-  slide.innerHTML = `<h3 tabindex="-1">${card.title}</h3><p>${card.text}</p>${card.visual || ''}`;
+  const items = card.bullets.map(bullet => `<li>${bullet}</li>`).join('');
+  slide.innerHTML = `<h3 tabindex="-1">${card.title}</h3><ul class="bcGuideBullets">${items}</ul>${card.visual || ''}`;
   back.disabled = index === 0;
   next.textContent = index === deck.slides.length - 1 ? 'Done' : 'Next';
   dialog.scrollTop = 0;

@@ -19,3 +19,9 @@
 .bcGuideChain b,.bcGuideClue b{padding:4px 12px;border:1px solid #537e83;border-radius:8px;background:#25404b;color:#b8ffe5;letter-spacing:.05em}
 .bcGuide details{margin-top:8px}
 .bcGuide summary{cursor:pointer;color:#abf0d8;padding:10px 0;box-sizing:border-box}
+/* Slide titles receive focus for announcements. Interactive controls keep their focus rings. */
+.bcGuideSlide h3:focus{outline:none}
+.bcGuideBullets{list-style:disc;margin:0 0 12px;padding-inline-start:1.25em;color:#e2e9f8;line-height:1.45}
+.bcGuideBullets li+li{margin-top:6px}
+.bcGuideBullets li::marker{color:#abf0d8}
+.bcGuide details .bcGuideBullets{margin-bottom:0}
