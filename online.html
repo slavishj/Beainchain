@@ -311,7 +311,11 @@ body.typing #guessForm button{padding:12px}
   <p class="alert" id="message" role="status"></p>
  </div>
 </section>
-<p class="small">Beta note: keep this browser tab available during your turn. Text invitations work now; automatic phone notifications are planned later.</p>
+<ul class="small profileNotes" aria-label="Online beta notes">
+ <li>Keep this browser tab available during your turn</li>
+ <li>Text invitations are available now</li>
+ <li>Automatic phone notifications are planned for later</li>
+</ul>
 </main>
 <div id="feedbackPop" class="feedbackPop hide" role="status" aria-live="assertive"></div>
 <dialog id="playerCard" class="guideDialog" aria-labelledby="playerCardName">
@@ -359,15 +363,21 @@ body.typing #guessForm button{padding:12px}
  </section>
  <section class="guideSlide" hidden>
   <h3 tabindex="-1">Try again if you miss</h3>
-  <p>Get it on your first try and earn <strong>100 points</strong>. Each miss shows another letter and costs <strong>20 points</strong>.</p>
+  <ul class="profileNotes">
+   <li>Earn <strong>100 points</strong> for a correct first guess</li>
+   <li>Each miss reveals another letter and costs <strong>20 points</strong></li>
+  </ul>
   <div class="guideExample">
    <div class="guideScoreRow"><span>B _ _</span><strong>Worth 100 points</strong></div>
    <div class="guideMockLabel">↓ You guessed BAG</div>
    <div class="guideScoreRow"><span>B O _</span><strong>Worth 80 points</strong></div>
   </div>
-  <p>Guess <strong>BOW</strong> now and earn <strong>80 points</strong>.</p>
-  <p>Points stop at <strong>0</strong>. On a seven-letter word, five misses leave one blank. You can still guess, but the word is worth 0 points.</p>
-  <p>If the last letter is revealed, your turn ends automatically at 0 points.</p>
+  <ul class="profileNotes">
+   <li>Guess <strong>BOW</strong> now to earn <strong>80 points</strong></li>
+   <li>You can still guess at <strong>0 points</strong> while a blank remains</li>
+   <li>On a seven-letter word, five misses leave one blank worth 0 points</li>
+   <li>Revealing the last letter automatically ends your turn at 0 points</li>
+  </ul>
  </section>
  <section class="guideSlide" hidden>
   <h3 tabindex="-1">Finish the chain</h3>
