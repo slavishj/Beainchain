@@ -37,12 +37,13 @@ body.typing .guessbox button{padding:12px}
 .partyGuideControls button{min-height:44px}
 .partyGuideExample{padding:12px;border-radius:10px;background:#101d32;color:#9cf9d8;text-align:center;font-weight:800}
 /* Native-app-like start screen: game modes first, setup only when needed. */
-.homeScreen .top{justify-content:space-between;gap:8px;padding:24px 0 8px}
-.homeScreen .logo{font-size:clamp(31px,9.5vw,57px);letter-spacing:-2px}
+.homeScreen .top{justify-content:flex-end;gap:8px;padding:0 0 8px}
+.homeScreen .top>div:first-child{display:none}
+.homeLogoArt{display:block;width:min(100%,460px);height:auto;aspect-ratio:2.05;object-fit:cover;margin:0 auto;border-radius:18px}
 .homeScreen .tag,.homeScreen .modeHeading{display:none}
 .modeHeading{width:fit-content;margin:8px 0 0;padding:5px 10px;border:1px solid #4c766f;border-radius:8px;background:#1b3b45;color:#a4f6d8;font-size:18px;font-weight:850;line-height:1.25}
 .tag{display:none}
-#homeMenu{padding:18px 0 35px;text-align:center}
+#homeMenu{padding:0 0 35px;text-align:center}
 #homeMenu .modeList{margin-top:24px}
 #homeMenu .modeList{display:grid;gap:13px}
 #homeMenu .modeButton{width:100%;display:flex;gap:16px;align-items:center;text-align:left;background:#202f4c;border:1px solid #4a5e81;border-radius:22px;padding:20px;min-height:108px;box-shadow:0 8px 20px #0002}
@@ -557,6 +558,7 @@ const homeMenu=document.createElement('section');
 homeMenu.id='homeMenu';
 homeMenu.innerHTML=`
  <a id="homeIdentity" class="homeIdentity" href="./online.html#profile" aria-label="Open your player profile"><span class="photo" id="homePhoto">👤</span><span class="name" id="homeName">Profile</span></a>
+ <img class="homeLogoArt" src="./brainchain-logo.png" width="1254" height="1254" alt="BrainChain">
  <div class="modeList">
   <button type="button" id="chooseSolo" class="modeButton"><span class="modeIcon" aria-hidden="true"><span class="brainEmoji">🧠</span></span><span class="modeCopy"><strong>Solo Play</strong><span class="modeTagline">No Witnesses!</span><small>Challenge yourself<br>Play at your own pace</small></span><span class="modeChevron" aria-hidden="true">›</span></button>
   <button type="button" id="chooseParty" class="modeButton"><span class="modeIcon" aria-hidden="true">👥</span><span class="modeCopy"><strong>Pass &amp; Play</strong><span class="modeTagline">one phone &amp; forced family fun!</span><small>Play together on one phone<br>Made for family game night</small></span><span class="modeChevron" aria-hidden="true">›</span></button>
