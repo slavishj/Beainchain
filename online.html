@@ -239,6 +239,7 @@ body.typing #guessForm button{padding:12px}
     <form id="guessForm"><input id="answer" aria-label="Your guess" placeholder="Type missing word" spellcheck="false" autocomplete="off" autocapitalize="characters"><button class="primary">GUESS</button></form>
    </div>
   </div>
+  <p class="alert hide" id="connectionStatus" role="status"></p>
   <p class="alert" id="message" role="status"></p>
  </div>
 </section>
@@ -749,7 +750,7 @@ async function loadGames(){
 }
 function invitation(){return location.origin+location.pathname+'?invite='+encodeURIComponent(code)}
 async function show(codeToShow){
- chatDialog.close();game=null;setChatUnread(false);$('openChat').classList.add('hide');
+ chatDialog.close();game=null;setConnectionStatus('');$('message').textContent='';setChatUnread(false);$('openChat').classList.add('hide');
  lastPlayersFetch=0;
  $('myScoreName').textContent='Your points';$('theirScoreName').textContent='Friend’s points';
  code=String(codeToShow).trim().toUpperCase();history.replaceState(null,'','?invite='+encodeURIComponent(code));
@@ -770,10 +771,31 @@ async function refreshMatchPlayers(){
  lastPlayersFetch=Date.now();
  }catch(e){}
 }
-async function refresh(){
- if(!code)return;
- const matchCode=code;
- try{const g=await rpc('bc_view',{p_code:matchCode});if(code!==matchCode)return;game=g;render(g);refreshChat();if(Date.now()-lastPlayersFetch>20000)refreshMatchPlayers()}catch(e){err(e)}
+let refreshRequest=0, refreshFailures=0, pollingMatch=false;
+function setConnectionStatus(message){
+ const status=$('connectionStatus');
+ status.textContent=message;
+ status.classList.toggle('hide',!message);
+ if(!message)refreshFailures=0;
+}
+async function refresh(background=false){
+ if(!code||(background&&(pollingMatch||busy||document.hidden)))return;
+ const matchCode=code,request=++refreshRequest;
+ if(background)pollingMatch=true;
+ try{
+  const g=await rpc('bc_view',{p_code:matchCode});
+  if(code!==matchCode||request!==refreshRequest)return;
+  render(g);
+  game=g;
+  setConnectionStatus('');
+  refreshChat();
+  if(Date.now()-lastPlayersFetch>20000)refreshMatchPlayers();
+ }catch(e){
+  if(code!==matchCode||request!==refreshRequest)return;
+  if(!background&&game){err(e);return}
+  if(!game||++refreshFailures>=2)
+   setConnectionStatus('Could not refresh the match. Retrying automatically…');
+ }finally{if(background)pollingMatch=false}
 }
 function render(g){
  $('openChat').classList.toggle('hide',g.status==='waiting');
@@ -875,12 +897,14 @@ $('share').onclick=async()=>{const url=invitation();let text='I challenge you to
 $('copy').onclick=async()=>{try{await navigator.clipboard.writeText(invitation());$('message').textContent='Invitation link copied'}catch(e){$('message').textContent=invitation()}};
 $('leave').onclick=()=>{
  chatDialog.close();
+ refreshRequest++;setConnectionStatus('');
  code='';game=null;history.replaceState(null,'',location.pathname);
  $('match').classList.add('hide');$('lobby').classList.remove('hide');$('leave').classList.add('hide');
  loadGames();
 };
 $('refreshGames').onclick=loadGames;
-setInterval(refresh,5000);
+setInterval(()=>refresh(true),5000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh(true)});
 setInterval(loadGames,15000);
 (async()=>{try{await auth();let c=new URLSearchParams(location.search).get('invite');if(c){await rpc('brainchain_join_game',{p_code:c}).catch(async()=>{let g=await rpc('bc_view',{p_code:c});if(!g)throw Error('Could not join')});await show(c)}else{await loadGames();if(location.hash==='#profile')await openProfile()}}catch(e){err(e)}})();
 </script>
