@@ -17,6 +17,7 @@ button.primary{background:#7be9c3;color:#09272a}button.secondary{background:#334
 .homeButton{display:inline-flex;align-items:center;justify-content:center;min-height:52px;padding:15px;border-radius:13px;background:#334669;color:white;font-weight:800;text-decoration:none}
 button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;color:white;width:100%;font-size:18px}
 .full{width:100%}.stack{display:grid;gap:12px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.brainEmoji{display:inline-block;filter:grayscale(1) sepia(1) hue-rotate(225deg) saturate(2) brightness(1.15)}
 .small{font-size:14px}.badge{display:inline-block;background:#294a4d;color:#a4f6d8;border-radius:20px;padding:7px 12px;font-weight:800;font-size:13px}
 .time{font-weight:900;font-size:35px;font-variant-numeric:tabular-nums;color:#91f2d4}
 .score{background:#131e35;border-radius:15px;padding:15px}.score p{margin:0 0 8px}
@@ -175,7 +176,7 @@ body.typing #guessForm button{padding:12px}
  <div class="card">
   <div class="gamesHeader"><h2>Player Profile</h2><button id="closeProfile" class="secondary" type="button">Back to Game</button></div>
   <div class="profileHead">
-   <div id="profilePreview" class="profileBadge">🧠</div>
+   <div id="profilePreview" class="profileBadge"><span class="brainEmoji">🧠</span></div>
    <div class="profileIdentity">
     <div class="profileNameRow">
      <h2 id="profileDisplay">Your player card</h2>
@@ -199,7 +200,10 @@ body.typing #guessForm button{padding:12px}
   <p class="profileAlert small" id="profileMessage" role="status"></p>
   <p class="small">Your photo and screen name will be visible to other players. This beta profile is linked to this browser; email account recovery is coming later.</p>
  </div>
- <div class="card"><h2>Your Player Card</h2><div id="profileStats" class="statGrid"></div><p class="small">Word scores are out of 100; game scores are out of 400. Averages use the new points-based games only.</p></div>
+ <div class="card"><h2>Your Player Card</h2><div id="profileStats" class="statGrid"></div><ul class="small" style="padding-inline-start:1.25em">
+  <li>Word scores are out of 100</li>
+  <li>Game scores are out of 400</li>
+ </ul></div>
  <div class="card"><h2>Head-to-Head Records</h2><div id="rivalStats">Loading your matchups...</div></div>
  <div class="card"><h2>Community Leaderboard</h2><p class="small">Highest average word score. Players qualify after 10 scored words.</p><div id="profileLeaderboard">Loading...</div></div>
 </section>
@@ -334,6 +338,7 @@ body.typing #guessForm button{padding:12px}
  </form>
  <p id="chatStatus" role="status"></p>
 </dialog>
+<script src="brain-emoji.js"></script>
 <script>
 const BASE='https://hsdvkdvimzyyyjdhbtzb.supabase.co';
 const KEY='sb_publishable_r5S0XJMRaDBOXIhiXzslFA_tUYSHuAR';
@@ -341,8 +346,8 @@ const $=id=>document.getElementById(id);
 const AVATARS=['🧠','🦊','🐻','🦉','🐸','🤖','🐙','🦁','🐼','🐯','🐢','🦄'];
 let profileData=null,selectedAvatar='🧠',profilePhotoPath=null,profileFile=null,profileOpen=false,profilePhotoPreview='',lastPlayersFetch=0;
 function avatarUrl(path){return typeof path==='string'&&/^[0-9a-f-]{36}\/avatar\.jpg$/.test(path)?BASE+'/storage/v1/object/public/brainchain-avatars/'+path:null}
-function profilePicture(host,avatar,path){host.replaceChildren();const url=avatarUrl(path);if(url){const img=document.createElement('img');img.src=url+'?v='+Date.now();img.alt='Player photo';host.append(img)}else{host.textContent=avatar||'🧠'}}
-function drawAvatars(){const host=$('avatarChoices');host.replaceChildren();for(const a of AVATARS){const b=document.createElement('button');b.type='button';b.textContent=a;b.className=a===selectedAvatar?'chosen':'';b.setAttribute('aria-label','Select '+a+' avatar');b.setAttribute('aria-pressed',String(a===selectedAvatar));b.onclick=()=>{selectedAvatar=a;profilePhotoPath=null;profileFile=null;$('profilePhoto').value='';$('cameraPhoto').value='';if(profilePhotoPreview){URL.revokeObjectURL(profilePhotoPreview);profilePhotoPreview=''};drawAvatars();profilePicture($('profilePreview'),selectedAvatar,null)};host.append(b)}}
+function profilePicture(host,avatar,path){host.replaceChildren();const url=avatarUrl(path);if(url){const img=document.createElement('img');img.src=url+'?v='+Date.now();img.alt='Player photo';host.append(img)}else{renderBrainEmoji(host,avatar||'🧠')}}
+function drawAvatars(){const host=$('avatarChoices');host.replaceChildren();for(const a of AVATARS){const b=document.createElement('button');b.type='button';renderBrainEmoji(b,a);b.className=a===selectedAvatar?'chosen':'';b.setAttribute('aria-label','Select '+a+' avatar');b.setAttribute('aria-pressed',String(a===selectedAvatar));b.onclick=()=>{selectedAvatar=a;profilePhotoPath=null;profileFile=null;$('profilePhoto').value='';$('cameraPhoto').value='';if(profilePhotoPreview){URL.revokeObjectURL(profilePhotoPreview);profilePhotoPreview=''};drawAvatars();profilePicture($('profilePreview'),selectedAvatar,null)};host.append(b)}}
 function statTiles(p,area=$('profileStats')){const metrics=[['Average word score',p.words?p.averagePoints:'—'],['Average game score',p.completedGames?p.averageGameScore:'—'],['Perfect words',p.perfectWords],['Total points earned',p.totalPoints],['Games played',p.gamesPlayed],['Games won',p.wins],['Win rate',p.completedGames?Math.round(p.wins/p.completedGames*100)+'%':'—'],['Community rank',p.rank?'#'+p.rank:'Unranked']];area.replaceChildren();for(const [label,val] of metrics){const tile=document.createElement('div');tile.className='statTile';const name=document.createElement('span');name.textContent=label;const value=document.createElement('strong');value.textContent=val;tile.append(name,value);area.append(tile)}}
 function playerLink(name,picture,caption=name){
  const button=document.createElement('button');
@@ -350,7 +355,7 @@ function playerLink(name,picture,caption=name){
  const avatar=document.createElement('span');avatar.setAttribute('aria-hidden','true');
  const url=avatarUrl(picture.photoPath);
  if(url){const img=document.createElement('img');img.src=url;img.alt='';img.className='profileAvatarSmall';avatar.append(img)}
- else avatar.textContent=picture.avatar||'👤';
+ else renderBrainEmoji(avatar,picture.avatar||'👤');
  const label=document.createElement('span');label.textContent=caption;
  button.append(avatar,label);
  button.onclick=()=>openPlayerCard(name,picture);
