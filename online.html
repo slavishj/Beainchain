@@ -793,6 +793,10 @@ let loadingGames=false;
 function matchResult(mine,theirs){
  return mine===theirs?'You tied':mine>theirs?'You won!':'You lost';
 }
+const invitationDateTime = new Intl.DateTimeFormat(undefined, {
+ dateStyle: 'medium',
+ timeStyle: 'short'
+});
 async function loadGames(){
  if(loadingGames||document.hidden)return;
  loadingGames=true;
@@ -851,6 +855,16 @@ async function loadGames(){
    const progress=document.createElement('span');progress.className='gameProgress';
    progress.textContent=completed?'Completed':waiting?'Invitation pending':(myTurn?'Your turn':'Their turn')+' · Word '+Math.min(4,g.word_number)+' of 4';
    summary.append(gameLabel,progress);
+   if(waiting && mine===1 && g.created_at){
+    const createdAt = new Date(g.created_at);
+    if(Number.isFinite(createdAt.getTime())){
+     const timestamp = document.createElement('time');
+     timestamp.className = 'gameProgress';
+     timestamp.dateTime = createdAt.toISOString();
+     timestamp.textContent = 'Created ' + invitationDateTime.format(createdAt);
+     summary.append(timestamp);
+    }
+   }
    const open=document.createElement('button');
    open.type='button';open.className='gameOpen'+(myTurn?' primary':' secondary');
    open.textContent=completed?'View result':'Open game';
