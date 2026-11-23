@@ -35,9 +35,19 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 .alert{color:#f9d894;min-height:24px}
 #pauseScreen{background:#111a2e;text-align:center;padding:60px 20px;border-radius:20px}
 #guessForm{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+#guessDock{position:sticky;bottom:8px;z-index:20;background:#1b2743;padding:10px 0;border-radius:12px}
 .hintControls{display:flex;justify-content:flex-end;gap:4px;margin:6px 0}
-.hintControls button{min-width:44px;min-height:44px;padding:5px 12px;font-size:14px}
+.hintControls button{flex:none;width:auto;min-height:44px;padding:5px 12px;font-size:14px}
+#hintInfo{min-width:44px}
 #hintDetails{margin:0 0 8px;color:#d3e0f2;font-size:13px}
+.activeClue{display:none;text-align:center;font-weight:900;overflow-wrap:anywhere}
+.dockWord{padding:5px 8px;border:1px solid #8cf4d0;border-radius:9px;background:#284656}
+.dockMissing{padding:5px 8px;border:2px dashed #8cf4d0;border-radius:9px;background:#11383d;color:#8cf4d0;letter-spacing:2px}
+.dockArrow{color:#bac9e4;line-height:1.15}
+body.typing #guessDock{position:fixed;left:10px;right:10px;bottom:calc(var(--keyboard-height, 0px) + 8px);padding:12px;background:#1b2743;border:1px solid #647391;box-shadow:0 0 0 100vmax #07102388;max-width:660px;margin:0 auto}
+body.typing .activeClue{display:block}
+body.typing #guessForm input{font-size:16px;min-width:0;padding:12px 9px}
+body.typing #guessForm button{padding:12px}
 #gamesStatus:empty{display:none}
 .manualJoin summary{width:fit-content;padding:10px 0;color:#b7f4dc;cursor:pointer}
 .manualJoin .stack{margin-top:6px}
@@ -215,12 +225,19 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
   <div id="chainSection" class="hide"><div class="chainLabel">Your word chain</div><div id="wordChain" class="wordChain" aria-label="Word chain"></div></div>
   <div id="solveControls" class="hide">
    <div class="badge" id="pointsAvailable" style="display:block;text-align:center;margin:16px auto">Worth 100 points</div>
-   <div class="hintControls">
-    <button id="revealClue" class="secondary" type="button">Hint</button>
-    <button id="hintInfo" class="secondary" type="button" aria-label="How hints affect your score" aria-expanded="false" aria-controls="hintDetails">ⓘ</button>
+   <div id="guessDock">
+    <div id="activeClue" class="activeClue" aria-live="polite" aria-atomic="true">
+     <div id="dockPrevious" class="dockWord"></div>
+     <div class="dockArrow" aria-hidden="true">↓</div>
+     <div id="dockMissing" class="dockMissing"></div>
+    </div>
+    <div class="hintControls">
+     <button id="revealClue" class="secondary" type="button">Hint</button>
+     <button id="hintInfo" class="secondary" type="button" aria-label="How hints affect your score" aria-expanded="false" aria-controls="hintDetails">ⓘ</button>
+    </div>
+    <p id="hintDetails" class="hide">A hint reveals one letter and takes 20 points off the word’s value.</p>
+    <form id="guessForm"><input id="answer" aria-label="Your guess" placeholder="Type missing word" spellcheck="false" autocomplete="off" autocapitalize="characters"><button class="primary">GUESS</button></form>
    </div>
-   <p id="hintDetails" class="hide">A hint reveals one letter and takes 20 points off the word’s value.</p>
-   <form id="guessForm"><input id="answer" placeholder="Your answer" autocomplete="off" autocapitalize="characters"><button class="primary">GUESS</button></form>
   </div>
   <p class="alert" id="message" role="status"></p>
  </div>
@@ -767,7 +784,9 @@ function render(g){
  $('playAgain').classList.toggle('hide',g.status!=='completed');
  $('inviteControls').classList.toggle('hide',g.status!=='waiting');
  $('readyControls').classList.toggle('hide',g.status!=='active'||!myTurn||started);
- $('solveControls').classList.toggle('hide',g.status!=='active'||!myTurn||!started);
+ const solving=g.status==='active'&&myTurn&&started;
+ if(!solving)$('answer').blur();
+ $('solveControls').classList.toggle('hide',!solving);
  const safeToShow=g.status==='completed'||g.status==='active'&&myTurn&&started;
  $('chainSection').classList.toggle('hide',!safeToShow);
  if(safeToShow){
@@ -777,6 +796,12 @@ function render(g){
    if(chain.childElementCount){const arrow=document.createElement('div');arrow.className='chainArrow';arrow.textContent='↓';chain.append(arrow)}
    const box=document.createElement('div');box.className='chainWord'+(active?' current':!chain.childElementCount?' starter':'');box.textContent=word;chain.append(box);
   };
+  if(solving){
+   const previous=words[words.length-1]||g.previousWord||'';
+   const missing=g.clue||'';
+   if($('dockPrevious').textContent!==previous)$('dockPrevious').textContent=previous;
+   if($('dockMissing').textContent!==missing)$('dockMissing').textContent=missing;
+  }
   words.forEach(w=>addWord(w));
   if(g.status==='active'&&myTurn&&started&&g.clue)addWord(g.clue,true);
   if(!chain.childElementCount){const hidden=document.createElement('div');hidden.className='chainHidden';hidden.textContent='Your chain will appear here.';chain.append(hidden)}
@@ -816,6 +841,24 @@ function submitGuess(guess,revealLetter=false){
    const feedback=revealLetter?'Letter revealed.':'Not quite! Another letter revealed.';
    showFeedback(false,feedback+' Now worth '+game.pointsAvailable+' points.');
   }
+ });
+}
+const answer=$('answer');
+answer.addEventListener('focus',()=>document.body.classList.add('typing'));
+answer.addEventListener('blur',()=>document.body.classList.remove('typing'));
+if(window.visualViewport){
+ const viewport=window.visualViewport;
+ const adjustKeyboard=()=>{
+  const covered=Math.max(0,window.innerHeight-viewport.height-viewport.offsetTop);
+  document.documentElement.style.setProperty('--keyboard-height',covered+'px');
+ };
+ viewport.addEventListener('resize',adjustKeyboard);
+ viewport.addEventListener('scroll',adjustKeyboard);
+ adjustKeyboard();
+}
+for(const button of $('guessDock').querySelectorAll('button')){
+ button.addEventListener('pointerdown',e=>{
+  if(document.activeElement===answer)e.preventDefault();
  });
 }
 $('guessForm').onsubmit=e=>{
