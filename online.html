@@ -528,11 +528,11 @@ function unlockAudio(){
   return Promise.resolve();
  }catch(e){return Promise.reject(e)}
 }
-function playFeedbackSound(good){
+function playFeedbackSound(good,notes=good?[660,880]:[340,250]){
  if(!soundOn||!audioCtx)return;
  try{
   const start=audioCtx.currentTime;
-  (good?[660,880]:[340,250]).forEach((hz,i)=>{
+  notes.forEach((hz,i)=>{
    const oscillator=audioCtx.createOscillator(),gain=audioCtx.createGain(),t=start+i*.14;
    oscillator.type=good?'sine':'triangle';oscillator.frequency.value=hz;
    gain.gain.setValueAtTime(.0001,t);
@@ -685,9 +685,18 @@ $('chatForm').onsubmit=async e=>{
   if(code===matchCode)$('chatStatus').textContent=e.message;
  }finally{chatSending=false;$('sendChat').disabled=false}
 };
+const turnStates=new Map();
+function recordTurn(matchCode,isMyTurn){
+ const previous=turnStates.get(matchCode);
+ turnStates.set(matchCode,isMyTurn);
+ return previous===false&&isMyTurn;
+}
+function playTurnTone(){
+ if(!document.hidden)playFeedbackSound(true,[523,659,1047]);
+}
 let loadingGames=false;
 async function loadGames(){
- if(loadingGames||$('lobby').classList.contains('hide'))return;
+ if(loadingGames||document.hidden)return;
  loadingGames=true;
  try{
   await auth();
@@ -696,6 +705,13 @@ async function loadGames(){
   });
   if(!r.ok)throw Error('Could not load your games');
   const items=await r.json();
+  let newTurn=false;
+  for(const g of items){
+   if(g.invite_code===code)continue;
+   const mine=g.player_one_id===session.user.id?1:2;
+   if(recordTurn(g.invite_code,g.status==='active'&&g.current_player===mine))newTurn=true;
+  }
+  if(newTurn)playTurnTone();
   if($('lobby').classList.contains('hide'))return;
   $('gamesStatus').textContent=items.length?'':'No open games yet. Create a challenge to get started.';
   const groups=['Your turn','Their turn','Waiting for a friend'].map((title,index)=>{
@@ -792,6 +808,7 @@ async function refresh(background=false){
   if(code!==matchCode||request!==refreshRequest)return;
   render(g);
   game=g;
+  if(recordTurn(matchCode,g.status==='active'&&g.currentPlayer===g.myPlayer))playTurnTone();
   setConnectionStatus('');
   refreshChat();
   if(Date.now()-lastPlayersFetch>20000)refreshMatchPlayers();
@@ -913,7 +930,7 @@ $('leave').onclick=()=>{
 };
 $('refreshGames').onclick=loadGames;
 setInterval(()=>refresh(true),5000);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh(true)});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){refresh(true);loadGames()}});
 setInterval(loadGames,15000);
 (async()=>{try{await auth();let c=new URLSearchParams(location.search).get('invite');if(c){await rpc('brainchain_join_game',{p_code:c}).catch(async()=>{let g=await rpc('bc_view',{p_code:c});if(!g)throw Error('Could not join')});await show(c)}else{await loadGames();if(location.hash==='#profile')await openProfile()}}catch(e){err(e)}})();
 </script>
