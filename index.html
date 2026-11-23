@@ -469,7 +469,7 @@ function updateEnd(){
  const atHome=menu?!menu.classList.contains('hide'):!$('setup').classList.contains('hide');
  $('globalEnd').classList.toggle('hide',atHome);
  document.body.classList.toggle('homeScreen',atHome);
- $('localModeHeading').textContent=solo()?'Solo Play':'Pass & Play';
+ $('localModeHeading').textContent=solo()?'Solo Play – No Witnesses':'Pass & Play';
  $('handoffEnd').textContent='⌂ Home';$('handoffEnd').classList.add('homeNav');
  $('betweenSession').textContent=solo()?'⌂ Home':'END SESSION / CHANGE TEAMS';
 }
@@ -552,7 +552,7 @@ homeMenu.id='homeMenu';
 homeMenu.innerHTML=`
  <a id="homeIdentity" class="homeIdentity" href="./online.html#profile" aria-label="Open your player profile"><span class="photo" id="homePhoto">👤</span><span class="name" id="homeName">Profile</span></a>
  <div class="modeList">
-  <button type="button" id="chooseSolo" class="modeButton"><span class="modeIcon" aria-hidden="true"><span class="brainEmoji">🧠</span></span><span class="modeCopy"><strong>Solo Play</strong><small>Challenge yourself<br>Play at your own pace</small></span><span class="modeChevron" aria-hidden="true">›</span></button>
+  <button type="button" id="chooseSolo" class="modeButton"><span class="modeIcon" aria-hidden="true"><span class="brainEmoji">🧠</span></span><span class="modeCopy"><strong>Solo Play – No Witnesses</strong><small>Challenge yourself<br>Play at your own pace</small></span><span class="modeChevron" aria-hidden="true">›</span></button>
   <button type="button" id="chooseParty" class="modeButton"><span class="modeIcon" aria-hidden="true">👥</span><span class="modeCopy"><strong>Pass &amp; Play</strong><small>Play together on one phone<br>Made for family game night</small></span><span class="modeChevron" aria-hidden="true">›</span></button>
   <button type="button" id="chooseOnline" class="modeButton"><span class="modeIcon" aria-hidden="true">🌐</span><span class="modeCopy"><strong>Online Play</strong><small>Challenge friends on their own phones</small></span><span class="modeChevron" aria-hidden="true">›</span></button>
  </div>
