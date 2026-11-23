@@ -37,10 +37,11 @@ body.typing .guessbox button{padding:12px}
 .partyGuideControls button{min-height:44px}
 .partyGuideExample{padding:12px;border-radius:10px;background:#101d32;color:#9cf9d8;text-align:center;font-weight:800}
 /* Native-app-like start screen: game modes first, setup only when needed. */
-.homeScreen .top{justify-content:flex-end;gap:8px;padding:0 0 8px}
+.homeScreen .top{justify-content:space-between;gap:8px;padding:0 0 8px}
 .homeScreen .top>div:first-child{display:none}
 .top #globalEnd{flex:none;align-self:flex-start;white-space:nowrap}
-.homeLogoArt{display:block;width:min(54%,220px);height:auto;aspect-ratio:2.05;object-fit:cover;margin:0 auto;border-radius:18px}
+.homeLogoArt{display:none;width:min(54%,220px);height:auto;aspect-ratio:2.05;object-fit:cover;border-radius:18px}
+.homeScreen .homeLogoArt{display:block}
 .homeScreen .tag,.homeScreen .modeHeading{display:none}
 .modeHeading{width:fit-content;margin:8px 0 0;padding:5px 10px;border:1px solid #4c766f;border-radius:8px;background:#1b3b45;color:#a4f6d8;font-size:18px;font-weight:850;line-height:1.25}
 .tag{display:none}
@@ -567,7 +568,7 @@ homeMenu.innerHTML=`
  </div>
  <div class="homeFooter">Pick a mode to begin</div>`;
 document.querySelector('#setup').before(homeMenu);
-document.querySelector('.top').append(document.querySelector('#homeIdentity'));
+document.querySelector('.top').append(document.querySelector('.homeLogoArt'),document.querySelector('#homeIdentity'));
 async function loadHomeIdentity(){
  try{
   const base='https://hsdvkdvimzyyyjdhbtzb.supabase.co',key='sb_publishable_r5S0XJMRaDBOXIhiXzslFA_tUYSHuAR';
