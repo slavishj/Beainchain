@@ -51,9 +51,10 @@ body.typing #guessForm input{font-size:16px;min-width:0;padding:12px 9px}
 body.typing #guessForm button{padding:12px}
 #gamesStatus:empty{display:none}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between}
-.onlineToolbar{justify-content:flex-start;padding-inline-end:88px}
+.onlineToolbar{justify-content:flex-start;align-items:center}
 .onlineToolbar .homeButton,.onlineToolbar button{background:#344767;color:#f5f8ff;border:1px solid #63789c;box-shadow:0 4px 14px #0005;font-size:14px;font-weight:750;letter-spacing:0;padding:10px 14px;border-radius:12px;min-height:44px}
-.onlineToolbar .homeButton{position:fixed;right:12px;top:calc(env(safe-area-inset-top, 0px) + 8px);z-index:100}
+.onlineToolbar .homeButton{margin-inline-start:auto;white-space:nowrap}
+@media(max-width:380px){.onlineToolbar{gap:8px}.onlineToolbar .homeButton,.onlineToolbar button{padding-inline:9px}}
 .onlineToolbar :focus-visible{outline:3px solid #8cf2cc;outline-offset:2px}
 .toolbar button{min-height:42px;padding:10px 14px}
 .soundToggle{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:10px 14px}
@@ -208,7 +209,7 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
 </head>
 <body>
 <main>
-<div class="toolbar onlineToolbar"><a class="homeButton" href="./index.html#home" aria-label="Return to Home">⌂ Home</a><button id="howTo" class="secondary" type="button">How to Play</button><button id="profileButton" class="secondary" type="button">👤 Profile <span id="profileMailBadge" class="mailBadge hide"></span></button><button id="leave" class="secondary hide">My Games</button></div>
+<div class="toolbar onlineToolbar"><button id="howTo" class="secondary" type="button">How to Play</button><button id="profileButton" class="secondary" type="button">👤 Profile <span id="profileMailBadge" class="mailBadge hide"></span></button><a class="homeButton" href="./index.html#home" aria-label="Return to Home">⌂ Home</a><button id="leave" class="secondary hide">My Games</button></div>
 <h1>Brain<span>Chain</span></h1><p class="modeHeading"><strong>Online Play</strong><span class="modeTagline">One chain, miles apart!</span></p>
 <div id="firstTimeTip" class="tutorialTip hide">
  <p><strong>New to BrainChain Online?</strong> Learn the rules with a sample turn.</p>
