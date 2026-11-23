@@ -139,8 +139,8 @@ body.typing #guessForm button{padding:12px}
 @keyframes popIn{from{opacity:0;transform:scale(.9) translateY(-12px)}to{opacity:1;transform:scale(1) translateY(0)}}
 @media(max-width:360px){h1{font-size:34px}.clue{font-size:23px}}
 .matchHeading{display:flex;justify-content:space-between;align-items:center;gap:8px}
-button#openChat{background:#b72539;color:#fff}
-#chatBadge{color:#fff}
+#openChat{position:relative}
+#chatBadge{position:absolute;top:4px;right:4px;width:12px;height:12px;border-radius:50%;background:#ff453a;box-shadow:0 0 0 2px #334669;pointer-events:none}
 #chatMessages{max-height:35dvh;overflow:auto;display:grid;gap:8px;margin:12px 0}
 .chatMessage{margin:0;padding:9px 12px;border-radius:12px;background:#253956;overflow-wrap:anywhere;white-space:pre-wrap}
 .chatMessage.mine{background:#254c50}
@@ -210,7 +210,7 @@ button#openChat{background:#b72539;color:#fff}
  <div class="card">
   <div class="matchHeading">
    <div class="badge" id="statusBadge">Getting game...</div>
-   <button id="openChat" class="secondary hide" type="button" aria-label="Match chat">💬<span id="chatBadge" class="hide" aria-hidden="true"> ●</span></button>
+   <button id="openChat" class="secondary hide" type="button" aria-label="Match chat">💬<span id="chatBadge" class="hide" aria-hidden="true"></span></button>
   </div>
   <h2 id="headline" aria-live="polite">Your challenge</h2>
   <div class="grid">
