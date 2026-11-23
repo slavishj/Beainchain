@@ -206,8 +206,10 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
 .modeTagline{margin-top:4px;color:#a4f6d8;font-size:14px;font-weight:650;line-height:1.35}
 .modeHeading strong{color:#f4f8ff}
 </style>
+<link rel="stylesheet" href="how-to-play.css">
 </head>
 <body>
+<script src="how-to-play.js" defer></script>
 <main>
 <div class="toolbar onlineToolbar"><button id="howTo" class="secondary" type="button">How to Play</button><button id="profileButton" class="secondary" type="button">👤 Profile <span id="profileMailBadge" class="mailBadge hide"></span></button><a class="homeButton" href="./index.html#home" aria-label="Return to Home">⌂ Home</a><button id="leave" class="secondary hide">My Games</button></div>
 <h1>Brain<span>Chain</span></h1><p class="modeHeading"><strong>Online Play</strong><span class="modeTagline">One chain, miles apart!</span></p>
@@ -402,76 +404,6 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
  <p id="playerCardMessage" role="status"></p>
  <div id="playerCardStats" class="statGrid"></div>
 </dialog>
-<dialog id="guideDialog" class="guideDialog" aria-labelledby="guideTitle">
- <div class="guideHeader"><h2 id="guideTitle">How to Play</h2><button id="closeGuide" class="secondary" type="button">Close</button></div>
- <p id="guideStep" class="guideStep"></p>
- <section class="guideSlide" hidden>
-  <h3 tabindex="-1">Invite a friend</h3>
-  <p>Tap <strong>Create a challenge</strong>. Then send your friend the link.</p>
-  <div class="guideExample">
-   <div class="guideMockLabel">My Games</div>
-   <div class="guideCallout"><span aria-hidden="true">→</span><strong>Create a challenge</strong></div>
-   <div class="guideMockLabel">Your challenge</div>
-   <div class="guideCallout"><span aria-hidden="true">→</span><strong>Text invitation</strong></div>
-  </div>
-  <p>Your friend taps the link to join. You can also use <strong>Copy invitation link</strong> to share it.</p>
- </section>
- <section class="guideSlide" hidden>
-  <h3 tabindex="-1">Start your turn</h3>
-  <p>In <strong>My Games</strong>, find a game that says <strong>Your turn</strong>.</p>
-  <div class="guideExample">
-   <div class="guideMockLabel">Game 1 · Your turn</div>
-   <div class="guideCallout"><span aria-hidden="true">→</span><strong>Open game</strong></div>
-   <div class="guideMockLabel">Your turn</div>
-   <div class="guideCallout"><span aria-hidden="true">→</span><strong>GO!</strong></div>
-  </div>
-  <p>Tap <strong>Open game</strong>, then <strong>GO!</strong> to see your clue.</p>
- </section>
- <section class="guideSlide" hidden>
-  <h3 tabindex="-1">Connect the words</h3>
-  <p>Find a word that goes after <strong>RAIN</strong>. It starts with <strong>B</strong> and has three letters.</p>
-  <div class="guideExample">
-   <div class="guideMockLabel">Start with</div>
-   <div class="chainWord">RAIN</div>
-   <div class="chainArrow" aria-hidden="true">↓</div>
-   <div class="chainWord current" aria-label="B followed by two blanks">B _ _</div>
-   <div class="guideGuess"><span class="guideEntry">BOW</span><span class="guidePointer" aria-hidden="true">→</span><strong class="guideMockButton">GUESS</strong></div>
-  </div>
-  <p>Type <strong>BOW</strong> and tap <strong>GUESS</strong>. <strong>RAIN + BOW = RAINBOW</strong>.</p>
- </section>
- <section class="guideSlide" hidden>
-  <h3 tabindex="-1">Try again if you miss</h3>
-  <ul class="profileNotes">
-   <li>Earn <strong>100 points</strong> for a correct first guess</li>
-   <li>Each miss reveals another letter and costs <strong>20 points</strong></li>
-  </ul>
-  <div class="guideExample">
-   <div class="guideScoreRow"><span>B _ _</span><strong>Worth 100 points</strong></div>
-   <div class="guideMockLabel">↓ You guessed BAG</div>
-   <div class="guideScoreRow"><span>B O _</span><strong>Worth 80 points</strong></div>
-  </div>
-  <ul class="profileNotes">
-   <li>Guess <strong>BOW</strong> now to earn <strong>80 points</strong></li>
-   <li>You can still guess at <strong>0 points</strong> while a blank remains</li>
-   <li>On a seven-letter word, five misses leave one blank worth 0 points</li>
-   <li>Revealing the last letter automatically ends your turn at 0 points</li>
-  </ul>
- </section>
- <section class="guideSlide" hidden>
-  <h3 tabindex="-1">Finish the chain</h3>
-  <p>Your friend gets a turn on the same word. Then you both move on to the next word.</p>
-  <div class="guideExample">
-   <div class="guideScoreRow"><span>You</span><strong>340 points</strong></div>
-   <div class="guideScoreRow"><span>Friend</span><strong>300 points</strong></div>
-   <div class="guideMockLabel">You win!</div>
-  </div>
-  <p>After four words each, the higher total wins. Each player can earn up to <strong>400 points per chain</strong>.</p>
- </section>
- <div class="guideNav">
-  <button id="guideBack" class="secondary" type="button">Back</button>
-  <button id="guideNext" class="primary" type="button">Next</button>
- </div>
-</dialog>
 <dialog id="matchChat" class="guideDialog" aria-labelledby="chatTitle">
  <div class="guideHeader"><h2 id="chatTitle">Match chat</h2><button id="closeChat" type="button">Close</button></div>
  <div id="chatMessages" aria-live="polite"></div>
@@ -654,32 +586,17 @@ $('saveProfile').onclick=async()=>{
   $('profileMessage').textContent='✓ Profile saved!';
  }catch(e){$('profileMessage').textContent=e.message||String(e)}finally{btn.disabled=false}
 };
-const guide=$('guideDialog');
-const guideSlides=[...guide.querySelectorAll('.guideSlide')];
-let guideIndex=0,guideOpener=null;
-function renderGuide(){
- guideSlides.forEach((slide,index)=>{slide.hidden=index!==guideIndex});
- $('guideStep').textContent=(guideIndex+1)+' of '+guideSlides.length;
- $('guideBack').disabled=guideIndex===0;
- $('guideNext').textContent=guideIndex===guideSlides.length-1?'Done':'Next';
- guide.scrollTop=0;
- guideSlides[guideIndex].querySelector('h3').focus({preventScroll:true});
-}
-function openTutorial(e){
- guideOpener=e.currentTarget;
+function markTutorialSeen(){
  $('firstTimeTip').classList.add('hide');
  localStorage.setItem('bc_tutorial_seen','1');
- guideIndex=0;
- guide.showModal();
- renderGuide();
+}
+function openTutorial(){
+ markTutorialSeen();
+ window.brainChainGuide.open('online', $('howTo'));
 }
 $('howTo').onclick=openTutorial;
 $('firstTimeWatch').onclick=openTutorial;
-$('dismissTip').onclick=()=>{localStorage.setItem('bc_tutorial_seen','1');$('firstTimeTip').classList.add('hide')};
-$('closeGuide').onclick=()=>guide.close();
-$('guideBack').onclick=()=>{if(guideIndex>0){guideIndex--;renderGuide()}};
-$('guideNext').onclick=()=>{if(guideIndex===guideSlides.length-1)guide.close();else{guideIndex++;renderGuide()}};
-guide.addEventListener('close',()=>{(guideOpener===$('firstTimeWatch')?$('howTo'):guideOpener)?.focus()});
+$('dismissTip').onclick=markTutorialSeen;
 if(!localStorage.getItem('bc_tutorial_seen'))$('firstTimeTip').classList.remove('hide');
 let session,code='',game=null,busy=false;
 let soundOn=localStorage.getItem('bc_sound')!=='off',audioCtx=null,feedbackTimer=null;

@@ -1,0 +1,21 @@
+.bcGuide{box-sizing:border-box;width:min(480px,calc(100% - 24px));max-height:calc(100dvh - 24px);margin:auto;padding:18px;border:1px solid #64739a;border-radius:20px;background:#17243b;color:#f8faff;overflow:auto}
+.bcGuide::backdrop{background:#050b18df}
+.bcGuide header,.bcGuide footer{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.bcGuide h2{margin:0;font-size:1.2rem;line-height:1.2}
+.bcGuide h3{margin:0 0 12px;font-size:1.45rem;line-height:1.15}
+.bcGuide button,.bcGuide summary{min-height:44px}
+.bcGuide button{flex:none}
+.bcGuide button:disabled{opacity:.45}
+.bcGuide p{margin:0 0 12px;line-height:1.45;color:#e2e9f8}
+.bcGuide .bcGuideStep{margin:12px 0;color:#abf0d8;font-size:.9rem}
+.bcGuideSlide{padding:14px 0}
+.bcGuide footer{border-top:1px solid #405372;padding-top:12px}
+.bcGuide figure,.bcGuideClue{margin:0 0 12px;padding:10px;border-radius:14px;background:#101a2b;text-align:center}
+.bcGuide figcaption,.bcGuideClue span{color:#c6d1ea;font-size:.875rem}
+.bcGuideChain{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:3px}
+.bcGuideChain li,.bcGuideClue{display:grid;justify-items:center;gap:4px}
+.bcGuideChain span{color:#c6d1ea;font-size:.8rem}
+.bcGuideChain span::before{content:'↓ ';color:#abf0d8}
+.bcGuideChain b,.bcGuideClue b{padding:4px 12px;border:1px solid #537e83;border-radius:8px;background:#25404b;color:#b8ffe5;letter-spacing:.05em}
+.bcGuide details{margin-top:8px}
+.bcGuide summary{cursor:pointer;color:#abf0d8;padding:10px 0;box-sizing:border-box}
