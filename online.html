@@ -144,6 +144,11 @@ body.typing #guessForm button{padding:12px}
 .chatMessage{margin:0;padding:9px 12px;border-radius:12px;background:#253956;overflow-wrap:anywhere;white-space:pre-wrap}
 .chatMessage.mine{background:#254c50}
 #chatForm textarea{width:100%;min-height:60px;padding:10px;font:inherit;color:white;background:#101a30;border:1px solid #677895;border-radius:10px}
+#headline{margin:14px 0 16px}
+#headline[data-turn]{padding:12px 14px;border-radius:13px;font-size:clamp(19px,5vw,24px);line-height:1.2}
+#headline[data-turn="mine"]{background:#7be9c3;color:#09272a}
+#headline[data-turn="theirs"]{background:#263a5b;color:#e7efff;border:1px solid #667fa5}
+#turnInfo:empty{display:none}
 </style>
 </head>
 <body>
@@ -206,7 +211,7 @@ body.typing #guessForm button{padding:12px}
    <div class="badge" id="statusBadge">Getting game...</div>
    <button id="openChat" class="secondary hide" type="button" aria-label="Match chat">💬<span id="chatBadge" class="hide" aria-hidden="true"> ●</span></button>
   </div>
-  <h2 id="headline" style="margin-top:16px">Your challenge</h2>
+  <h2 id="headline" aria-live="polite">Your challenge</h2>
   <div class="grid">
    <div class="score"><p id="myScoreName" class="playerName">Your points</p><div class="time" id="mine">0 pts</div></div>
    <div class="score"><p id="theirScoreName" class="playerName">Friend's points</p><div class="time" id="theirs">0 pts</div></div>
@@ -219,7 +224,6 @@ body.typing #guessForm button{padding:12px}
    <button id="copy" class="secondary">Copy invitation link</button>
   </div>
   <div class="stack hide" id="readyControls">
-   <p><strong>YOUR TURN!</strong> The puzzle appears when you're ready.</p>
    <button id="start" class="primary">GO!</button>
   </div>
   <div id="chainSection" class="hide"><div class="chainLabel">Your word chain</div><div id="wordChain" class="wordChain" aria-label="Word chain"></div></div>
@@ -750,7 +754,7 @@ async function loadGames(){
 }
 function invitation(){return location.origin+location.pathname+'?invite='+encodeURIComponent(code)}
 async function show(codeToShow){
- chatDialog.close();game=null;setConnectionStatus('');$('message').textContent='';setChatUnread(false);$('openChat').classList.add('hide');
+ chatDialog.close();game=null;$('headline').textContent='Loading match…';$('headline').removeAttribute('data-turn');setConnectionStatus('');$('message').textContent='';setChatUnread(false);$('openChat').classList.add('hide');
  lastPlayersFetch=0;
  $('myScoreName').textContent='Your points';$('theirScoreName').textContent='Friend’s points';
  code=String(codeToShow).trim().toUpperCase();history.replaceState(null,'','?invite='+encodeURIComponent(code));
@@ -828,8 +832,12 @@ function render(g){
   if(g.status==='active'&&myTurn&&started&&g.clue)addWord(g.clue,true);
   if(!chain.childElementCount){const hidden=document.createElement('div');hidden.className='chainHidden';hidden.textContent='Your chain will appear here.';chain.append(hidden)}
  }
- $('turnInfo').textContent=g.status==='waiting'?'Share the invitation, then wait for your friend.':g.status==='completed'?'Both players finished!':myTurn?(started?'Take your time. Every incorrect guess reveals a letter and costs 20 points.':'Your turn — tap GO when ready.'):'Waiting for your friend to solve their word.';
- $('headline').textContent=g.status==='completed'?(g.playerOnePoints===g.playerTwoPoints?'It’s a tie!':(g.myPlayer===1?g.playerOnePoints>g.playerTwoPoints:g.playerTwoPoints>g.playerOnePoints)?'You win! 🎉':'Great match!'):'BrainChain Challenge';
+ $('turnInfo').textContent=g.status==='waiting'?'Share the invitation, then wait for your friend.':g.status==='completed'?'Both players finished!':myTurn?(started?'Every incorrect guess reveals a letter and costs 20 points.':'Tap GO when you’re ready.'):'';
+ const headline=$('headline');
+ if(g.status==='active')headline.dataset.turn=myTurn?'mine':'theirs';
+ else headline.removeAttribute('data-turn');
+ const title=g.status==='completed'?(g.playerOnePoints===g.playerTwoPoints?'It’s a tie!':(g.myPlayer===1?g.playerOnePoints>g.playerTwoPoints:g.playerTwoPoints>g.playerOnePoints)?'You win! 🎉':'Great match!'):g.status==='active'?(myTurn?'Your turn':'Waiting for your opponent'):'BrainChain Challenge';
+ if(headline.textContent!==title)headline.textContent=title;
  $('inviteCodeLabel').textContent='Invitation code: '+code;
  $('pointsAvailable').textContent='Worth '+g.pointsAvailable+' points';
 }
