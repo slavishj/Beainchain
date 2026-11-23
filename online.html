@@ -224,7 +224,10 @@ body.typing #guessForm button{padding:12px}
  <div class="card stack">
   <button id="playerMailbox" type="button" class="secondary hide">Messages <span id="playerMailBadge" class="mailBadge hide"></span></button>
   <button id="adminMailbox" type="button" class="secondary hide">Admin Mailbox <span id="adminMailBadge" class="mailBadge hide"></span></button>
-  <details><summary class="small">Account details</summary><button id="mailAccount" class="secondary" type="button">Show account ID</button><p id="mailAccountId" class="small"></p></details>
+  <details id="accountDetails">
+   <summary class="small">Account details</summary>
+   <p class="small" style="overflow-wrap:anywhere"><strong>Account ID</strong><br><span id="mailAccountId">Loading…</span></p>
+  </details>
  </div>
  <div class="card"><h2>Your Player Card</h2><div id="profileStats" class="statGrid"></div><ul class="small" style="padding-inline-start:1.25em">
   <li>Word scores are out of 100</li>
@@ -1220,10 +1223,16 @@ $('mailReply').onsubmit = event => {
   await openMail(thread);
  });
 };
-$('mailAccount').onclick = async () => {
- try { await auth(); $('mailAccountId').textContent = session.user.id; }
- catch (error) { $('mailAccountId').textContent = 'Account ID unavailable'; }
-};
+$('accountDetails').addEventListener('toggle', async event => {
+ if (!event.currentTarget.open) return;
+ const accountId = $('mailAccountId');
+ try {
+  await auth();
+  accountId.textContent = session.user.id;
+ } catch {
+  accountId.textContent = 'Unavailable';
+ }
+});
 setInterval(refreshMailboxStatus, 15000);
 document.addEventListener('visibilitychange', refreshMailboxStatus);
 refreshMailboxStatus();
