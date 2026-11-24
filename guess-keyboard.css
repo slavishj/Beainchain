@@ -5,3 +5,9 @@
 .guessKeyRow button:focus-visible{outline:2px solid #92f5d2;outline-offset:-2px}
 #guessDock .activeClue{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:5px;margin-bottom:6px}
 #guessDock .dockArrow{transform:rotate(-90deg)}
+
+.guessEntry{position:relative;flex:1;min-width:0}
+.guessEntry input{width:100%;cursor:text}
+.guessCaret{display:none;position:absolute;top:50%;width:2px;height:1.1em;transform:translateY(-50%);border-radius:1px;background:#092a30;pointer-events:none}
+.guessEntry:focus-within .guessCaret{display:block}
+@media(prefers-reduced-motion:no-preference){.guessCaret{animation:guessCaretBlink 1.1s step-end infinite}@keyframes guessCaretBlink{50%{opacity:0}}}
