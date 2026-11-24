@@ -1,0 +1,7 @@
+.guessKeyboard{display:grid;gap:5px;min-inline-size:0;margin:8px 0 0;padding:0;border:0}
+.guessKeyRow{display:flex;justify-content:center;gap:3px}
+.guessKeyRow button{flex:0 1 calc((100% - 27px)/10);min-width:0;min-height:44px;padding:0;border-radius:7px;background:#34486a;color:#fff;font-size:clamp(13px,4vw,17px);line-height:1;touch-action:manipulation}
+.guessKeyRow button:last-child[aria-label]{flex-grow:1;max-width:60px}
+.guessKeyRow button:focus-visible{outline:2px solid #92f5d2;outline-offset:-2px}
+#guessDock .activeClue{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:5px;margin-bottom:6px}
+#guessDock .dockArrow{transform:rotate(-90deg)}

@@ -45,10 +45,6 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 .dockWord{padding:5px 8px;border:1px solid #8cf4d0;border-radius:9px;background:#284656}
 .dockMissing{padding:5px 8px;border:2px dashed #8cf4d0;border-radius:9px;background:#11383d;color:#8cf4d0;letter-spacing:2px}
 .dockArrow{color:#bac9e4;line-height:1.15}
-body.typing #guessDock{position:fixed;left:10px;right:10px;bottom:calc(var(--keyboard-height, 0px) + 8px);padding:12px;background:#1b2743;border:1px solid #647391;box-shadow:0 0 0 100vmax #07102388;max-width:660px;margin:0 auto}
-body.typing .activeClue{display:block}
-body.typing #guessForm input{font-size:16px;min-width:0;padding:12px 9px}
-body.typing #guessForm button{padding:12px}
 #gamesStatus:empty{display:none}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between}
 .onlineToolbar{justify-content:flex-start;align-items:center}
@@ -207,7 +203,7 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
 .modeHeading strong{color:#f4f8ff}
 </style>
 <link rel="stylesheet" href="how-to-play.css?v=bullets">
-</head>
+<link rel="stylesheet" href="guess-keyboard.css"><script src="guess-keyboard.js" defer></script></head>
 <body>
 <script src="how-to-play.js?v=bullets" defer></script>
 <main>
@@ -368,7 +364,7 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
      <button id="hintInfo" class="secondary" type="button" aria-label="How hints affect your score" aria-expanded="false" aria-controls="hintDetails">ⓘ</button>
     </div>
     <p id="hintDetails" class="hide">A hint reveals one letter and takes 20 points off the word’s value.</p>
-    <form id="guessForm"><input id="answer" aria-label="Your guess" placeholder="Type missing word" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false"><button class="primary">GUESS</button></form>
+    <form id="guessForm"><input id="answer" readonly inputmode="none" aria-label="Your guess" placeholder="Type missing word" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false"><button class="primary">GUESS</button></form>
    </div>
   </div>
   <p class="alert hide" id="connectionStatus" role="status"></p>
@@ -1079,24 +1075,6 @@ function submitGuess(guess,revealLetter=false){
    const feedback=revealLetter?'Letter revealed.':'Not quite! Another letter revealed.';
    showFeedback(false,feedback+' Now worth '+game.pointsAvailable+' points.');
   }
- });
-}
-const answer=$('answer');
-answer.addEventListener('focus',()=>document.body.classList.add('typing'));
-answer.addEventListener('blur',()=>document.body.classList.remove('typing'));
-if(window.visualViewport){
- const viewport=window.visualViewport;
- const adjustKeyboard=()=>{
-  const covered=Math.max(0,window.innerHeight-viewport.height-viewport.offsetTop);
-  document.documentElement.style.setProperty('--keyboard-height',covered+'px');
- };
- viewport.addEventListener('resize',adjustKeyboard);
- viewport.addEventListener('scroll',adjustKeyboard);
- adjustKeyboard();
-}
-for(const button of $('guessDock').querySelectorAll('button')){
- button.addEventListener('pointerdown',e=>{
-  if(document.activeElement===answer)e.preventDefault();
  });
 }
 $('guessForm').onsubmit=e=>{
