@@ -1002,7 +1002,29 @@ async function loadGames(){
    group.count.textContent=group.total+(group.total===1?' game':' games')+(group.turns?' · '+group.turns+' your turn':'');
    group.count.classList.toggle('turnCount',group.turns>0);
   }
-  $('gamesList').replaceChildren(...sorted.map(group=>group.details));
+  const pending=groups.get('pending');
+  const friends=sorted.filter(group=>group!==pending);
+  const sections=pending?[pending.details]:[];
+  if(friends.length){
+   const details=document.createElement('details');
+   details.className='opponentGames';
+   details.dataset.opponent='friends';
+   details.open=expanded.has('friends');
+   const heading=document.createElement('summary');
+   const title=document.createElement('span');
+   title.textContent='Games with friends';
+   const count=document.createElement('small');
+   const total=friends.reduce((sum,group)=>sum+group.total,0);
+   count.textContent=total+(total===1?' game':' games')+(totalTurns?' · '+totalTurns+' your turn':'');
+   count.classList.toggle('turnCount',totalTurns>0);
+   heading.append(title,count);
+   const rows=document.createElement('div');
+   rows.className='gameGroup';
+   rows.append(...friends.map(group=>group.details));
+   details.append(heading,rows);
+   sections.push(details);
+  }
+  $('gamesList').replaceChildren(...sections);
  }catch(e){$('gamesStatus').textContent=e.message}
  finally{loadingGames=false}
 }
