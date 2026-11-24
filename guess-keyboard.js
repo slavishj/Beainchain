@@ -79,7 +79,17 @@
  syncDisabled();
  field.addEventListener('keydown', event => {
   if (event.ctrlKey || event.metaKey || event.altKey || event.isComposing) return;
-  if (event.key === 'Enter') {
+  if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
+   event.preventDefault();
+   const position = {
+    ArrowLeft: Math.max(0, field.selectionStart - 1),
+    ArrowRight: Math.min(field.value.length, field.selectionEnd + 1),
+    Home: 0,
+    End: field.value.length
+   }[event.key];
+   field.setSelectionRange(position, position);
+   drawCaret();
+  } else if (event.key === 'Enter') {
    event.preventDefault();
    if (!event.repeat) {
     form.requestSubmit();
