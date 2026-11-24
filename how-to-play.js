@@ -16,8 +16,8 @@
     {title:'Start your chain', bullets: ["Tap <b>START CHAIN</b> to see your first clue.", "Take your time. Solo Play has no timer."]},
     firstGuess,
     completedChain,
-    {title:'Need another letter?', bullets: ["Tap <b>Hint</b> or make a guess.", "A hint or a wrong guess shows one more letter.", "If the whole word is shown, the game moves to the next word."]},
-    {title:'See your score', bullets: ["Earn <b>100 points</b> for finishing without hints or misses.", "Each hint or miss costs 10 points. You’ll earn at least 10 points per chain.", "Tap <b>NEXT CHAIN</b> to keep playing."]}
+    {title:'Need another letter?', bullets: ["Tap <b>Hint</b> or make a guess.", "A hint or a wrong guess shows one more letter and costs 20 points.", "If the last letter is shown, that word scores 0 and the game moves on."]},
+    {title:'See your score', bullets: ["Each missing word starts at <b>100 points</b>.", "Solve four words for up to <b>400 points</b> per chain.", "Tap <b>NEXT CHAIN</b> to keep playing."]}
    ]
   },
   party: {
