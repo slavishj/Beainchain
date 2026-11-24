@@ -264,7 +264,7 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
      <select id="accountStatePicker" aria-label="Choose the state you want to represent" aria-describedby="accountStateHelp"><option value="">Choose a state</option></select>
      <label class="statePrivacy"><input type="checkbox" id="accountStatePrivate" class="statePrivacyCheck">Keep my state private</label>
      <p id="accountStateHelp">Optional. Sharing can help you connect with players and join future state competitions. Check the box to share it only with admins.</p>
-     <button id="accountStateSave" type="submit" class="secondary" disabled>Save state</button>
+     <button id="accountStateSave" type="submit" class="secondary" disabled>Save state settings</button>
     </form>
     <p id="accountStateStatus" role="status"></p>
     <p><strong>Email</strong><br><span id="accountEmail">Loading…</span></p>
@@ -1277,42 +1277,49 @@ const accountState = $('accountState');
 const accountStateForm = $('accountStateForm');
 const accountStatePicker = $('accountStatePicker');
 const accountStateSave = $('accountStateSave');
+const accountStatePrivate = $('accountStatePrivate');
 const accountStateStatus = $('accountStateStatus');
 for (const [, code, name] of usStates) accountStatePicker.add(new Option(name, code));
 
 function renderAccountState(state) {
  const selected = usStates.find(([, code]) => code === state);
  stateSelector.value = selected ? state : '';
- const isPrivate = selected && profileData?.statePrivate;
- $('profileStatePrivate').checked = !!isPrivate;
- accountState.textContent = selected ? selected[2] + (isPrivate ? ' (Private)' : '') : 'Not selected';
- accountStateForm.classList.toggle('hide', !profileData || !!selected || !$('profileEditor').classList.contains('hide'));
+ const isPrivate = !!selected && !!profileData?.statePrivate;
+ $('profileStatePrivate').checked = isPrivate;
+ accountState.textContent = selected ? selected[2] + (isPrivate ? ' (Private)' : ' (Public)') : 'Not selected';
+ accountStatePicker.value = selected ? state : '';
+ accountStatePrivate.checked = isPrivate;
+ accountStateForm.classList.toggle('hide', !profileData || !$('profileEditor').classList.contains('hide'));
+ updateAccountStateSave();
 }
 
-accountStatePicker.onchange = () => { accountStateSave.disabled = !accountStatePicker.value; };
+function updateAccountStateSave() {
+ const state = accountStatePicker.value;
+ accountStateSave.disabled = accountStatePicker.disabled || !state ||
+  (state === profileData?.state && accountStatePrivate.checked === !!profileData?.statePrivate);
+}
+accountStatePicker.onchange = accountStatePrivate.onchange = updateAccountStateSave;
+
 accountStateForm.onsubmit = async event => {
  event.preventDefault();
  const state = accountStatePicker.value;
  if (!profileData || !state || accountStateSave.disabled) return;
  const editButton = $('editProfile');
- const privacy = $('accountStatePrivate');
- const statePrivate = privacy.checked;
- editButton.disabled = accountStateSave.disabled = accountStatePicker.disabled = privacy.disabled = true;
- accountStateStatus.textContent = 'Saving state…';
+ const statePrivate = accountStatePrivate.checked;
+ editButton.disabled = accountStateSave.disabled = accountStatePicker.disabled = accountStatePrivate.disabled = true;
+ accountStateStatus.textContent = 'Saving state settings…';
  try {
   await rpc('bc_profile_set_state_visibility', {p_state:state,p_private:statePrivate});
   profileData.state = state;
   profileData.statePrivate = statePrivate;
-  privacy.checked = false;
   renderAccountState(state);
-  accountStatePicker.value = '';
   accountState.focus();
-  accountStateStatus.textContent = 'State saved';
+  accountStateStatus.textContent = statePrivate ? 'Your state is private.' : 'Your state is public.';
  } catch (error) {
-  accountStateStatus.textContent = error.message || 'State could not be saved';
+  accountStateStatus.textContent = error.message || 'State settings could not be saved';
  } finally {
-  editButton.disabled = accountStatePicker.disabled = privacy.disabled = false;
-  accountStatePicker.onchange();
+  editButton.disabled = accountStatePicker.disabled = accountStatePrivate.disabled = false;
+  updateAccountStateSave();
  }
 };
 
