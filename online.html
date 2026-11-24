@@ -163,7 +163,7 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 #headline[data-turn="mine"]{background:#7be9c3;color:#09272a}
 #headline[data-turn="theirs"]{background:#263a5b;color:#e7efff;border:1px solid #667fa5}
 #turnInfo:empty{display:none}
-#gamesTurnAlert{margin:0;padding:11px 13px;border-radius:12px;background:#ffe08a;color:#332300;font-weight:800}
+#gamesTurnAlert{text-align:left;margin:0;padding:11px 13px;border-radius:12px;background:#ffe08a;color:#332300;font-weight:800}
 .opponentGames{border:1px solid #465b7b;border-radius:14px;background:#101d35}
 .opponentGames summary{cursor:pointer;padding:13px 12px;min-height:48px;font-weight:800}
 .opponentGames summary small{margin-left:8px;color:#becce2;font-weight:600}
@@ -326,9 +326,13 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
  <div class="gamesHeader"><h2>My Games</h2><button type="button" id="refreshGames">Refresh</button></div>
  <button id="create" class="primary full">Create a challenge</button>
  <p class="small" id="gamesStatus" role="status">Loading your games...</p>
- <p id="gamesTurnAlert" class="hide" role="status"></p>
+ <button id="gamesTurnAlert" class="hide" type="button"></button>
  <div id="gamesList" class="gameList"></div>
 </section>
+<dialog id="turnPicker" class="guideDialog" aria-labelledby="turnPickerTitle">
+ <div class="guideHeader"><h2 id="turnPickerTitle">Your turn</h2><button id="closeTurnPicker" class="secondary" type="button">Close</button></div>
+ <div id="turnPickerGames" class="stack" style="margin-top:12px"></div>
+</dialog>
 <section id="match" class="hide">
  <div class="card">
   <div class="matchHeading">
@@ -839,6 +843,33 @@ async function loadMatchNumbers(headers, playerId){
   if(matches.length<pageSize)return gameNumbers;
  }
 }
+const turnAlert=$('gamesTurnAlert');
+const turnPicker=$('turnPicker');
+const turnPickerGames=$('turnPickerGames');
+let waitingTurns=[];
+function renderTurnPicker(){
+ const existing=new Map([...turnPickerGames.children].map(button=>[button.dataset.code,button]));
+ for(const turn of waitingTurns){
+  let button=existing.get(turn.code);
+  if(!button){
+   button=document.createElement('button');
+   button.type='button';
+   button.className='secondary full';
+   button.dataset.code=turn.code;
+   button.onclick=()=>{turnPicker.close();show(turn.code)};
+   turnPickerGames.append(button);
+  }
+  button.textContent=turn.label.textContent+' · Word '+turn.word+' of 4';
+  existing.delete(turn.code);
+ }
+ for(const button of existing.values())button.remove();
+ if(!waitingTurns.length)turnPicker.close();
+}
+$('closeTurnPicker').onclick=()=>turnPicker.close();
+turnAlert.onclick=()=>{
+ if(waitingTurns.length===1){show(waitingTurns[0].code);return}
+ if(waitingTurns.length>1){renderTurnPicker();turnPicker.showModal()}
+};
 async function loadGames(){
  if(loadingGames||document.hidden)return;
  loadingGames=true;
@@ -864,6 +895,7 @@ async function loadGames(){
   $('gamesStatus').textContent=items.length||recent.length?'':'No open games yet. Create a challenge to get started.';
   const expanded=new Set([...$('gamesList').querySelectorAll('details[open]')].map(group=>group.dataset.opponent));
   const groups=new Map();
+  const nextTurns=[];
   const names=labels();
   const identity=session.user.id;
   const matchNumbers=[...items,...recent].some(game=>game.player_two_id)
@@ -900,6 +932,7 @@ async function loadGames(){
    const item=document.createElement('div');item.className='gameItem';
    const summary=document.createElement('div');
    const gameLabel=document.createElement('span');gameLabel.className='gameLabel';gameLabel.textContent=label;
+   if(myTurn)nextTurns.push({code:g.invite_code,label:gameLabel,word:Math.min(4,g.word_number)});
    const progress=document.createElement('span');progress.className='gameProgress';
    progress.textContent=completed?'Completed':waiting?'Invitation pending':(myTurn?'Your turn':'Their turn')+' · Word '+Math.min(4,g.word_number)+' of 4';
    summary.append(gameLabel,progress);
@@ -929,10 +962,12 @@ async function loadGames(){
     if(!screenName)return;
     rename.remove();
     gameLabel.textContent=screenName+' game';
+    if(myTurn&&turnPicker.open)renderTurnPicker();
     updateOpenLabel();
     return matchNumbers.then(numbers=>{
      const number=numbers.get(g.invite_code);
      if(number)gameLabel.textContent=screenName+' game #'+number;
+     if(myTurn&&turnPicker.open)renderTurnPicker();
      updateOpenLabel();
     });
    });
@@ -955,11 +990,14 @@ async function loadGames(){
    }
   });
   const sorted=[...groups.values()].sort((a,b)=>b.turns-a.turns);
-  const totalTurns=sorted.reduce((total,group)=>total+group.turns,0);
-  const alert=$('gamesTurnAlert');
-  const alertText=totalTurns?'Your turn in '+totalTurns+(totalTurns===1?' game':' games'):'';
-  if(alert.textContent!==alertText)alert.textContent=alertText;
-  alert.classList.toggle('hide',!totalTurns);
+  waitingTurns=nextTurns;
+  const totalTurns=waitingTurns.length;
+  const alertText=totalTurns?'Your turn in '+totalTurns+(totalTurns===1?' game':' games')+' →':'';
+  if(turnAlert.textContent!==alertText)turnAlert.textContent=alertText;
+  turnAlert.classList.toggle('hide',!totalTurns);
+  if(totalTurns>1)turnAlert.setAttribute('aria-haspopup','dialog');
+  else turnAlert.removeAttribute('aria-haspopup');
+  if(turnPicker.open)renderTurnPicker();
   for(const group of sorted){
    group.count.textContent=group.total+(group.total===1?' game':' games')+(group.turns?' · '+group.turns+' your turn':'');
    group.count.classList.toggle('turnCount',group.turns>0);
