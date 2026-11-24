@@ -797,6 +797,32 @@ const invitationDateTime = new Intl.DateTimeFormat(undefined, {
  dateStyle: 'medium',
  timeStyle: 'short'
 });
+async function loadMatchNumbers(headers, playerId){
+ const gameNumbers=new Map();
+ const opponentCounts=new Map();
+ const pageSize=500;
+ for(let offset=0;;offset+=pageSize){
+  const query=new URLSearchParams({
+   select:'invite_code,player_one_id,player_two_id',
+   or:`(player_one_id.eq.${playerId},player_two_id.eq.${playerId})`,
+   player_two_id:'not.is.null',
+   status:'in.(active,completed)',
+   order:'created_at.asc,invite_code.asc',
+   limit:String(pageSize),
+   offset:String(offset)
+  });
+  const response=await fetch(BASE+'/rest/v1/brainchain_games?'+query,{headers});
+  if(!response.ok)throw Error('Could not load match numbers');
+  const matches=await response.json();
+  for(const match of matches){
+   const opponent=match.player_one_id===playerId?match.player_two_id:match.player_one_id;
+   const number=(opponentCounts.get(opponent)||0)+1;
+   opponentCounts.set(opponent,number);
+   gameNumbers.set(match.invite_code,number);
+  }
+  if(matches.length<pageSize)return gameNumbers;
+ }
+}
 async function loadGames(){
  if(loadingGames||document.hidden)return;
  loadingGames=true;
@@ -823,6 +849,10 @@ async function loadGames(){
   const expanded=new Set([...$('gamesList').querySelectorAll('details[open]')].map(group=>group.dataset.opponent));
   const groups=new Map();
   const names=labels();
+  const identity=session.user.id;
+  const matchNumbers=[...items,...recent].some(game=>game.player_two_id)
+   ?loadMatchNumbers({apikey:KEY,Authorization:'Bearer '+session.access_token},identity).catch(()=>new Map())
+   :Promise.resolve(new Map());
   [...items,...recent].forEach((g,index)=>{
    const mine=g.player_one_id===session.user.id?1:2;
    const waiting=g.status==='waiting';
@@ -839,11 +869,13 @@ async function loadGames(){
     header.append(name,count);
     const rows=document.createElement('div');rows.className='gameGroup';
     details.append(header,rows);
-    groups.set(key,{details,rows,count,total:0,turns:0});
-    if(theirId)rpc('bc_match_players',{p_code:g.invite_code}).then(players=>{
+    const opponentName=theirId?rpc('bc_match_players',{p_code:g.invite_code}).then(players=>{
      const friend=mine===1?players?.two:players?.one;
-     if(friend?.name?.trim())name.textContent=friend.name.trim();
-    }).catch(()=>{});
+     const screenName=friend?.name?.trim();
+     if(screenName)name.textContent=screenName;
+     return screenName;
+    }).catch(()=>null):Promise.resolve(null);
+    groups.set(key,{details,rows,count,total:0,turns:0,opponentName});
    }
    const group=groups.get(key);
    group.total++;
@@ -875,6 +907,19 @@ async function loadGames(){
    rename.setAttribute('aria-label','Name '+label);
    rename.onclick=()=>{const val=prompt('Name this game (for example, Jeff)',label);if(val?.trim()){storeLabel(g.invite_code,val.trim().slice(0,35));loadGames()}};
    item.append(summary,open,rename);group.rows.append(item);
+   let scoreLabel='';
+   const updateOpenLabel=()=>open.setAttribute('aria-label','Open '+gameLabel.textContent+scoreLabel);
+   if(theirId)group.opponentName.then(screenName=>{
+    if(!screenName)return;
+    rename.remove();
+    gameLabel.textContent=screenName+' game';
+    updateOpenLabel();
+    return matchNumbers.then(numbers=>{
+     const number=numbers.get(g.invite_code);
+     if(number)gameLabel.textContent=screenName+' game #'+number;
+     updateOpenLabel();
+    });
+   });
    if(!waiting){
     rpc('bc_view',{p_code:g.invite_code}).then(view=>{
      const myPoints=mine===1?view?.playerOnePoints:view?.playerTwoPoints;
@@ -888,7 +933,8 @@ async function loadGames(){
      score.textContent=myPoints+'–'+theirPoints;
      const caption=document.createElement('span');caption.textContent='You – Friend';
      open.replaceChildren(score,caption);
-     open.setAttribute('aria-label','Open '+label+'. You '+myPoints+', friend '+theirPoints+' points.');
+     scoreLabel='. You '+myPoints+', friend '+theirPoints+' points.';
+     updateOpenLabel();
     }).catch(()=>{});
    }
   });
