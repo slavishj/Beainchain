@@ -1487,7 +1487,8 @@ setInterval(refreshMailboxStatus, 15000);
 document.addEventListener('visibilitychange', refreshMailboxStatus);
 refreshMailboxStatus();
 
-(async()=>{try{await auth();let c=new URLSearchParams(location.search).get('invite');if(c){await rpc('brainchain_join_game',{p_code:c}).catch(async()=>{let g=await rpc('bc_view',{p_code:c});if(!g)throw Error('Could not join')});await show(c)}else{await loadGames();if(location.hash==='#profile')await openProfile()}}catch(e){err(e)}})();
+(async()=>{try{await auth();let c=new URLSearchParams(location.search).get('invite');if(c){await rpc('brainchain_join_game',{p_code:c}).catch(async()=>{let g=await rpc('bc_view',{p_code:c});if(!g)throw Error('Could not join')});await show(c)}else{await loadGames();if(location.hash==='#profile')await openProfile();
+else if(location.hash==='#your-turn'&&waitingTurns.length)turnAlert.click()}}catch(e){err(e)}})();
 </script>
 </body>
 </html>

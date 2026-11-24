@@ -42,6 +42,8 @@
 #homeMenu .modeCopy{display:grid;gap:4px;flex:1}
 #homeMenu .modeCopy strong{font-size:21px;letter-spacing:-.5px}
 #homeMenu .modeCopy small{font-size:14px;color:#bfcee6;font-weight:500;line-height:1.35}
+#homeMenu .onlineTurnStatus{display:contents}
+#homeMenu .onlineTurnBadge{justify-self:start;background:#ffdb72;color:#31240a;border-radius:999px;padding:3px 9px;font-size:13px;font-weight:800}
 #homeMenu .modeChevron{font-size:25px;color:#b2c4da}
 #homeMenu .homeFooter{font-size:12px;color:#8c9dbb;margin-top:30px}
 /* Chunky rounded game typography rather than plain system button labels. */
@@ -473,6 +475,7 @@ function updateEnd(){
  document.body.classList.toggle('homeScreen',atHome);
  showLocalMode(solo());
  $('betweenSession').classList.toggle('hide',solo());
+ if (menu && atHome) loadHomeOnline();
 }
 function save(){try{localStorage.setItem('brainchain_v1',JSON.stringify({...state,running:false,paused:true}))}catch(e){}}
 function restore(){try{const v=JSON.parse(localStorage.getItem('brainchain_v1'));if(v&&v.teams?.length&&v.puzzle&&v.roundTeams?.length){state={...state,...v,running:false,paused:false,lock:true,awaiting:true};$('setup').classList.add('hide');
@@ -575,30 +578,73 @@ homeMenu.innerHTML=`
  <div class="modeList">
   <button type="button" id="chooseSolo" class="modeButton"><span class="modeIcon" aria-hidden="true"><span class="brainEmoji">🧠</span></span><span class="modeCopy"><strong>Solo Play</strong><span class="modeTagline">No Witnesses!</span><small>Challenge yourself<br>Play at your own pace</small></span><span class="modeChevron" aria-hidden="true">›</span></button>
   <button type="button" id="chooseParty" class="modeButton"><span class="modeIcon" aria-hidden="true">👥</span><span class="modeCopy"><strong>Pass &amp; Play</strong><span class="modeTagline">One phone &amp; forced family fun!</span><small>Play together on one phone<br>Made for family game night</small></span><span class="modeChevron" aria-hidden="true">›</span></button>
-  <button type="button" id="chooseOnline" class="modeButton"><span class="modeIcon" aria-hidden="true">🌐</span><span class="modeCopy"><strong>Online Play</strong><span class="modeTagline">One chain, miles apart!</span><small>Challenge family and friends, wherever they are</small></span><span class="modeChevron" aria-hidden="true">›</span></button>
+  <button type="button" id="chooseOnline" class="modeButton"><span class="modeIcon" aria-hidden="true">🌐</span><span class="modeCopy"><strong>Online Play</strong><span class="modeTagline">One chain, miles apart!</span><small>Challenge family and friends, wherever they are</small><span class="onlineTurnStatus" role="status"><span id="homeOnlineTurns" class="onlineTurnBadge" hidden></span></span></span><span class="modeChevron" aria-hidden="true">›</span></button>
  </div>
  <div class="homeFooter">Pick a mode to begin</div>`;
 document.querySelector('#setup').before(homeMenu);
 document.querySelector('.top').append(document.querySelector('.homeLogoArt'),document.querySelector('#homeIdentity'));
-async function loadHomeIdentity(){
+const homeOnlineTurns = document.querySelector('#homeOnlineTurns');
+let loadingHomeOnline = false;
+let homeProfileUser;
+function showHomeOnlineTurns(count) {
+ const label = count ? 'Your turn in ' + count + (count === 1 ? ' game' : ' games') : '';
+ if (homeOnlineTurns.textContent !== label) homeOnlineTurns.textContent = label;
+ homeOnlineTurns.hidden = count === 0;
+}
+async function loadHomeOnline() {
+ if (loadingHomeOnline || document.hidden || homeMenu.classList.contains('hide')) return;
+ loadingHomeOnline = true;
  try{
   const base='https://hsdvkdvimzyyyjdhbtzb.supabase.co',key='sb_publishable_r5S0XJMRaDBOXIhiXzslFA_tUYSHuAR';
-  let auth=JSON.parse(localStorage.getItem('bc_auth')||'null');if(!auth?.access_token)return;
+  let auth=JSON.parse(localStorage.getItem('bc_auth')||'null');
+  if (!auth?.access_token || !auth.user?.id) {
+   showHomeOnlineTurns(0);
+   return;
+  }
   if(auth.expires_at*1000<Date.now()+60000){
    const r=await fetch(base+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:key,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:auth.refresh_token})});
    if(!r.ok)return;const j=await r.json();auth={...j,expires_at:Math.floor(Date.now()/1000)+(j.expires_in||3600)};localStorage.setItem('bc_auth',JSON.stringify(auth));
   }
-  const r=await fetch(base+'/rest/v1/rpc/bc_profile_get',{method:'POST',headers:{apikey:key,Authorization:'Bearer '+auth.access_token,'Content-Type':'application/json'},body:'{}'});
-  if(!r.ok)return;const p=await r.json();if(!p?.screenName)return;
+  const userId = auth.user.id;
+  if (homeProfileUser !== userId) showHomeOnlineTurns(0);
+  const headers = {apikey:key,Authorization:'Bearer '+auth.access_token,'Content-Type':'application/json'};
+  await Promise.allSettled([
+   fetch(base+'/rest/v1/brainchain_games?select=status,current_player,player_one_id,player_two_id&status=in.(waiting,active)&order=created_at.desc,invite_code.desc&limit=50',{headers})
+    .then(async response => {
+     if (!response.ok) {
+      if (response.status === 401 || response.status === 403) showHomeOnlineTurns(0);
+      return;
+     }
+     const games = await response.json();
+     const count = games.filter(game => game.status === 'active' &&
+      ((game.current_player === 1 && game.player_one_id === userId) ||
+       (game.current_player === 2 && game.player_two_id === userId))).length;
+     const saved = JSON.parse(localStorage.getItem('bc_auth') || 'null');
+     showHomeOnlineTurns(saved?.user?.id === userId ? count : 0);
+    }),
+   homeProfileUser === userId ? null : loadHomeProfile(base, headers, userId)
+  ]);
+ } catch (error) {
+  showHomeOnlineTurns(0);
+ } finally {
+  loadingHomeOnline = false;
+ }
+}
+async function loadHomeProfile(base, headers, userId) {
+  const r=await fetch(base+'/rest/v1/rpc/bc_profile_get',{method:'POST',headers,body:'{}'});
+  if (!r.ok) return;
+  const p = await r.json();
+  homeProfileUser = userId;
+  if (!p?.screenName) return;
   document.querySelector('#homeName').textContent=p.screenName;
   const host=document.querySelector('#homePhoto');host.replaceChildren();
   if(typeof p.photoPath==='string'&&/^[0-9a-f-]{36}\/avatar\.jpg$/.test(p.photoPath)){
    const img=document.createElement('img');img.src=base+'/storage/v1/object/public/brainchain-avatars/'+p.photoPath+'?v='+Date.now();img.alt='Your profile photo';host.append(img);
   }else renderBrainEmoji(host,p.avatar||'🧠');
- }catch(e){}
 }
-loadHomeIdentity();
-window.addEventListener('pageshow',loadHomeIdentity);
+window.addEventListener('pageshow', loadHomeOnline);
+document.addEventListener('visibilitychange', loadHomeOnline);
+setInterval(loadHomeOnline, 15000);
 $('localGuide').onclick = event => {
  const resume = !solo() && state.running && state.seconds > 0;
  const token = turnToken;
@@ -615,7 +661,7 @@ document.body.classList.toggle('homeScreen',!document.querySelector('#game').cla
 if(!document.querySelector('#game').classList.contains('hide')||!document.querySelector('#handoff').classList.contains('hide')||!document.querySelector('#between').classList.contains('hide'))homeMenu.classList.add('hide');
 document.querySelector('#chooseSolo').onclick=()=>{document.querySelector('#count').value='1';teamFields();homeMenu.classList.add('hide');document.body.classList.remove('homeScreen');document.querySelector('#start').click()};
 document.querySelector('#chooseParty').onclick=()=>{showLocalMode(false);document.querySelector('#count').value='2';teamFields();homeMenu.classList.add('hide');document.querySelector('#setup').classList.remove('hide');document.body.classList.remove('homeScreen');$('globalEnd').classList.remove('hide');$('localGuide').classList.remove('hide');window.scrollTo(0,0)};
-document.querySelector('#chooseOnline').onclick=()=>{window.location.href='./online.html'};
+document.querySelector('#chooseOnline').onclick=()=>{window.location.href=homeOnlineTurns.hidden?'./online.html':'./online.html#your-turn'};
 $('globalEnd').onclick=()=>{
  if($('setup').classList.contains('hide')){reset();return}
  updateEnd();
