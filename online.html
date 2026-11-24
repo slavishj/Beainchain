@@ -419,7 +419,25 @@ let profileData=null,selectedAvatar='🧠',profilePhotoPath=null,profileFile=nul
 function avatarUrl(path){return typeof path==='string'&&/^[0-9a-f-]{36}\/avatar\.jpg$/.test(path)?BASE+'/storage/v1/object/public/brainchain-avatars/'+path:null}
 function profilePicture(host,avatar,path){host.replaceChildren();const url=avatarUrl(path);if(url){const img=document.createElement('img');img.src=url+'?v='+Date.now();img.alt='Player photo';host.append(img)}else{renderBrainEmoji(host,avatar||'🧠')}}
 function drawAvatars(){const host=$('avatarChoices');host.replaceChildren();for(const a of AVATARS){const b=document.createElement('button');b.type='button';renderBrainEmoji(b,a);b.className=a===selectedAvatar?'chosen':'';b.setAttribute('aria-label','Select '+a+' avatar');b.setAttribute('aria-pressed',String(a===selectedAvatar));b.onclick=()=>{selectedAvatar=a;profilePhotoPath=null;profileFile=null;$('profilePhoto').value='';$('cameraPhoto').value='';if(profilePhotoPreview){URL.revokeObjectURL(profilePhotoPreview);profilePhotoPreview=''};drawAvatars();profilePicture($('profilePreview'),selectedAvatar,null)};host.append(b)}}
-function statTiles(p,area=$('profileStats')){const metrics=[['Average word score',p.words?p.averagePoints:'—'],['Average game score',p.completedGames?p.averageGameScore:'—'],['Perfect words',p.perfectWords],['Total points earned',p.totalPoints],['Games played',p.gamesPlayed],['Games won',p.wins],['Win rate',p.completedGames?Math.round(p.wins/p.completedGames*100)+'%':'—'],['Community rank',p.rank?'#'+p.rank:'Unranked']];area.replaceChildren();for(const [label,val] of metrics){const tile=document.createElement('div');tile.className='statTile';const name=document.createElement('span');name.textContent=label;const value=document.createElement('strong');value.textContent=val;tile.append(name,value);area.append(tile)}}
+function formatTurnResponse(seconds){
+ if(!Number.isFinite(seconds))return '—';
+ if(seconds<60)return 'Under 1 min';
+ const minutes=Math.round(seconds/60);
+ if(minutes<60)return minutes+' min';
+ if(minutes<1440){
+  const hours=Math.floor(minutes/60);
+  const remainder=minutes%60;
+  return hours+' hr'+(remainder?' '+remainder+' min':'');
+ }
+ const days=Math.round(minutes/1440);
+ return days+(days===1?' day':' days');
+}
+function showTurnResponse(area,params){
+ rpc('bc_typical_turn_response',params).then(seconds=>{
+  area.textContent=formatTurnResponse(seconds);
+ }).catch(()=>{});
+}
+function statTiles(p,area=$('profileStats')){const metrics=[['Average word score',p.words?p.averagePoints:'—'],['Average game score',p.completedGames?p.averageGameScore:'—'],['Perfect words',p.perfectWords],['Total points earned',p.totalPoints],['Games played',p.gamesPlayed],['Games won',p.wins],['Win rate',p.completedGames?Math.round(p.wins/p.completedGames*100)+'%':'—'],['Community rank',p.rank?'#'+p.rank:'Unranked'],['Typical turn response time','—']];area.replaceChildren();for(const [label,val] of metrics){const tile=document.createElement('div');tile.className='statTile';const name=document.createElement('span');name.textContent=label;const value=document.createElement('strong');value.textContent=val;tile.append(name,value);area.append(tile)}}
 function playerLink(name,picture,caption=name){
  const button=document.createElement('button');
  button.type='button';button.className='playerLink';button.setAttribute('aria-label','View '+name+'’s player card');
@@ -453,6 +471,7 @@ async function openPlayerCard(name,picture){
   $('playerCardState').textContent=stateName||'';
   $('playerCardState').classList.toggle('hide', !stateName);
   statTiles(p,$('playerCardStats'));
+  showTurnResponse($('playerCardStats').lastElementChild.querySelector('strong'),{p_screen_name:name});
  }catch(e){
   if(request===playerCardRequest&&playerCard.open)$('playerCardMessage').textContent='Player stats are unavailable right now.';
  }
@@ -468,6 +487,7 @@ function renderProfileIdentity(p){
 }
 async function loadProfile(){
  const p=await rpc('bc_profile_get_with_state');renderProfileIdentity(p);statTiles(p);
+ showTurnResponse($('profileStats').lastElementChild.querySelector('strong'));
  const leaders=await rpc('bc_leaderboard');const host=$('profileLeaderboard');host.replaceChildren();
  if(!leaders.length){host.textContent='The leaderboard will appear once players have completed 10 scored words.'}
  leaders.forEach(x=>{const row=document.createElement('div');row.className='rankingRow';const left=document.createElement('div');left.className='rankingName';
