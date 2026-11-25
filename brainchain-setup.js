@@ -50,8 +50,8 @@ const brainChainSetup = (() => {
   const next = find('setupNext'), skip = find('setupSkip'), help = find('setupHelp');
   const detail = find('setupDetail'), sendTest = find('setupTest');
   const status = find('setupStatus'), signInButton = find('setupSignIn');
-  const gameLabel = tester ? 'Play Jeremy’s Challenge' : 'Play My Challenge';
-  let step = resume && standalone ? 4 : 0;
+  let opening = false;
+  let step = resume ? (standalone ? 4 : 5) : 0;
   let alertState;
   let loadingAlerts = false;
   function render(focus = true) {
@@ -60,9 +60,9 @@ const brainChainSetup = (() => {
      'Add BrainChain to your Home Screen for a better playing experience. Open it with one tap and get alerts for new messages and when it’s your turn.', '', 'Start Setup'],
     ['1. Find Share', 'Look beside the web address at the bottom of this screen for one of the icons below. If your web address is at the top, look there instead. Tap the three lines, then tap Share. If you see the square with the up arrow, tap that to open Share.', 'share-options', 'I Found Share'],
     ['2. Add BrainChain', 'Tap Share. Scroll down and tap Add to Home Screen. If you see Open as Web App, make sure it’s on. Tap Add.', 'share', 'Done — Next Step'],
-    ['3. Open BrainChain', 'Go to the screen where you open your other apps. Find the BrainChain icon and tap it.', 'logo', 'Done — Next Step'],
+    ['3. Open BrainChain', 'Go to the screen where you open your other apps and tap BrainChain. The guide will continue there. You can also keep going in this browser.', 'logo', 'Continue in This Browser'],
     ['4. Turn on alerts', 'Tap Enable Alerts. When your phone asks, tap Allow.', '', 'Enable Alerts'],
-    [code ? '5. Play your first game' : '5. You’re ready', code ? 'Your challenge is ready to open.' : 'You can change your alerts anytime in Profile.', '', code ? gameLabel : 'Done']
+    [code ? '5. Play your first game' : '5. You’re ready', code ? 'Tap Play Now to open your challenge.' : 'You can change your alerts anytime in Profile.', '', 'Done']
    ];
    if (!iphone && step === 1) cards[1] = ['1. Install BrainChain',
     installPrompt ? 'Tap Install BrainChain, then follow the message on your screen.' :
@@ -76,10 +76,12 @@ const brainChainSetup = (() => {
    copy.textContent = instructions;
    visual.dataset.icon = icon;
    next.textContent = label;
+   next.hidden = step === 5 && Boolean(code);
    next.disabled = step === 4 && !alertState?.enabled && !alertState?.available;
    sendTest.hidden = step !== 4 || !alertState?.enabled;
    skip.textContent = code ? 'Play Now' : 'Close Setup';
-   signInButton.hidden = step !== 4 || !signIn;
+   skip.hidden = (!code && step === 5) || (code && step === 3);
+   signInButton.hidden = (step !== 4 && step !== 5) || !signIn;
    help.hidden = ![1, 2, 3, 4].includes(step);
    detail.hidden = true;
    if (focus) title.focus();
@@ -102,7 +104,9 @@ const brainChainSetup = (() => {
    }).finally(() => { loadingAlerts = false; });
   }
   async function finish() {
+   if (opening) return;
    if (!code) { remember(''); dialog.close(); return; }
+   opening = true;
    next.disabled = skip.disabled = true;
    status.textContent = 'Opening your challenge…';
    try {
@@ -110,9 +114,11 @@ const brainChainSetup = (() => {
     remember('');
     localStorage.setItem('bc_setup_seen', '1');
     dialog.close();
-   } catch {
-    status.textContent = 'This challenge couldn’t open. Check your connection and try again, or ask your friend for a new invite.';
+   } catch (error) {
+    go(5);
+    status.textContent = error.message || 'Couldn’t open your challenge. Tap Play Now to try again.';
    } finally {
+    opening = false;
     skip.disabled = false;
     next.disabled = step === 4 && !alertState?.enabled && !alertState?.available;
    }
@@ -132,12 +138,18 @@ const brainChainSetup = (() => {
     }
     go(3);
    } else if (step === 3 && iphone && !standalone) {
-    status.textContent = 'Look for the BrainChain icon where you open your other apps. Tap that icon to continue.';
+    if (code) go(5);
+    else await finish();
    } else if (step === 4 && !alertState?.enabled) {
     next.disabled = true;
-    alertState = await enable();
-    status.textContent = alertState.message || '';
-    if (dialog.open) render(false);
+    try {
+     alertState = await enable();
+     status.textContent = alertState.message || '';
+    } catch {
+     status.textContent = 'Alerts couldn’t turn on. You can try again or play now.';
+    } finally {
+     if (dialog.open) render(false);
+    }
    } else if (step === 5) {
     await finish();
    } else go(step + 1);

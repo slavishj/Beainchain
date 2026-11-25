@@ -265,7 +265,8 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
    <label id="linkEmailLabel" for="linkEmail">Email</label>
    <input id="linkEmail" type="email" autocomplete="email" autocapitalize="none" required>
    <label id="linkPasswordLabel" for="linkPassword">Password</label>
-   <input id="linkPassword" type="password">
+   <input id="linkPassword" type="password" autocapitalize="none" spellcheck="false">
+   <button id="toggleLinkPassword" class="secondary hide" type="button" aria-controls="linkPassword">Show password</button>
    <button id="accountContinue" class="primary" type="submit">Send verification email</button>
    <p id="accountResult" class="small" role="status"></p>
   </form>
@@ -509,7 +510,7 @@ if (emailConfirmationPage) {
 </script>
 <script src="brain-emoji.js"></script>
 <script src="./brainchain-alerts.js?v=setup"></script>
-<script src="./brainchain-setup.js?v=share-options"></script>
+<script src="./brainchain-setup.js?v=setup-flow"></script>
 <script src="./brainchain-session.js"></script>
 <script>
 const {base: BASE, key: KEY, request: authApi} = brainChainSession;
@@ -658,7 +659,7 @@ async function openProfile(){
   }
  }
 }
-function closeProfile(){if($('saveProfile').disabled)return;setProfileEditing(false);profileOpen=false;$('profileButton').classList.remove('hide');$('profilePanel').classList.add('hide');$('lobby').classList.toggle('hide',!!code);$('match').classList.toggle('hide',!code);$('firstTimeTip').classList.add('hide');window.scrollTo(0,0)}
+function closeProfile(){if($('saveProfile').disabled)return;setLinkPasswordVisible(false);setProfileEditing(false);profileOpen=false;$('profileButton').classList.remove('hide');$('profilePanel').classList.add('hide');$('lobby').classList.toggle('hide',!!code);$('match').classList.toggle('hide',!code);$('firstTimeTip').classList.add('hide');window.scrollTo(0,0)}
 $('profileButton').onclick=openProfile;
 $('closeProfile').onclick=()=>{
  closeProfile();
@@ -792,6 +793,12 @@ async function auth(){
  if (emailConfirmationPage) throw Error('Return to your original profile.');
  session = await brainChainSession.get({createGuest: true});
 }
+function setLinkPasswordVisible(visible) {
+ $('linkPassword').type = visible ? 'text' : 'password';
+ $('toggleLinkPassword').textContent = visible ? 'Hide password' : 'Show password';
+}
+$('toggleLinkPassword').onclick = () => setLinkPasswordVisible($('linkPassword').type === 'password');
+
 function renderLinkAction() {
  const action = $('accountAction').value;
  const signIn = action === 'signin';
@@ -800,7 +807,8 @@ function renderLinkAction() {
  $('linkEmail').disabled = !emailNeeded;
  $('linkPassword').disabled = !passwordNeeded;
  for (const id of ['linkEmail', 'linkEmailLabel']) $(id).classList.toggle('hide', !emailNeeded);
- for (const id of ['linkPassword', 'linkPasswordLabel']) $(id).classList.toggle('hide', !passwordNeeded);
+ for (const id of ['linkPassword', 'linkPasswordLabel', 'toggleLinkPassword']) $(id).classList.toggle('hide', !passwordNeeded);
+ setLinkPasswordVisible(false);
  $('linkPassword').required = passwordNeeded;
  $('linkPassword').minLength = signIn ? 1 : 8;
  $('linkPassword').autocomplete = signIn ? 'current-password' : 'new-password';
@@ -821,6 +829,7 @@ $('accountLinkForm').onsubmit = async event => {
  const action = $('accountAction').value;
  const email = $('linkEmail').value.trim();
  const password = $('linkPassword').value;
+ setLinkPasswordVisible(false);
  const result = $('accountResult');
  button.disabled = true;
  $('accountAction').disabled = true;
@@ -834,7 +843,7 @@ $('accountLinkForm').onsubmit = async event => {
     result.textContent = 'Sign-in canceled.';
     return;
    }
-   if(currentId!==signedIn.user.id && localStorage.getItem('bc_alert_owner')) await disableBrainAlerts({switchingProfile:true});
+   if(currentId!==signedIn.user.id && localStorage.getItem('bc_alert_owner')) await disableBrainAlerts({switchingProfile:true}).catch(()=>{});
    session = brainChainSession.save(signedIn);
    location.replace(afterSetupSignIn || './index.html#home');
    return;
@@ -864,7 +873,10 @@ $('accountLinkForm').onsubmit = async event => {
   $('accountEmail').textContent = user.email;
   result.textContent = 'Password saved for ' + user.email + '. On your Home Screen, open Profile and choose “Sign in to an existing profile.”';
  } catch (error) {
-  result.textContent = error.message || 'Please try again.';
+  const message = error.message || 'Please try again.';
+  result.textContent = action === 'signin' && /invalid login credentials|email not confirmed/i.test(message)
+   ? 'Sign-in didn’t work. Check your email and use Show password to check what you typed. If you haven’t saved a password yet, open BrainChain where you first played. In Profile, link and confirm your email, then choose Set a password after verifying email.'
+   : message;
  } finally {
   button.disabled = false;
   $('accountAction').disabled = false;
@@ -1663,10 +1675,19 @@ refreshMailboxStatus();
 
 async function joinInvitation(inviteCode, tester) {
  await auth();
- await rpc('brainchain_join_game',{p_code:inviteCode}).catch(async () => {
-  const existing = await rpc('bc_view',{p_code:inviteCode});
-  if (!existing?.myPlayer) throw Error('Could not join');
- });
+ inviteCode = String(inviteCode).trim().toUpperCase();
+ try {
+  await rpc('brainchain_join_game',{p_code:inviteCode});
+ } catch (joinError) {
+  const existing = await rpc('bc_view',{p_code:inviteCode}).catch(()=>null);
+  if (![1, 2].includes(Number(existing?.myPlayer))) {
+   if (/full|already|taken|another player/i.test(joinError.message))
+    throw Error('This challenge may already be linked to another profile. If you opened it earlier, sign in to that profile or ask your friend for a fresh invite.');
+   if (/not found|invalid|expired/i.test(joinError.message))
+    throw Error('This challenge is no longer available. Ask your friend for a fresh invite.');
+   throw Error('Couldn’t open the challenge. Check your connection and tap Play Now to try again.');
+  }
+ }
  if (tester && !localStorage.getItem('bc_tester_feedback_'+session.user.id))
   localStorage.setItem('bc_tester_feedback_'+session.user.id,inviteCode.toUpperCase());
  await show(inviteCode);
@@ -1681,7 +1702,7 @@ function openSetupGuide(inviteCode, tester, resume) {
   enable:async()=>{await changeBrainAlerts({testOnEnable:false});return alertsForSetup()},
   test:async()=>{await sendTestAlert();return pushNotice.textContent},
   play:()=>joinInvitation(inviteCode,tester),
-  signIn:inviteCode&&brainChainSetup.standalone&&!brainChainSession.read()?.user?.email?async()=>{
+  signIn:inviteCode?async()=>{
    const url=brainChainSetup.link(inviteCode,tester);
    url.searchParams.set('resume','1');
    afterSetupSignIn=url.href;
@@ -1763,7 +1784,7 @@ function offerTesterFeedback(matchCode) {
  if(c){
   const tester=params.get('setup')==='tester';
   const saved=brainChainSetup.pending();
-  const resume=params.has('resume') || saved?.code===c;
+  const resume=params.has('resume') || (brainChainSetup.standalone && saved?.code===c);
   if(params.has('setup') && (resume || !localStorage.getItem('bc_setup_seen'))){
    openSetupGuide(c,tester,resume);
   }else await joinInvitation(c,tester);
