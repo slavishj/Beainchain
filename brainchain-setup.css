@@ -1,0 +1,15 @@
+#setupGuide{width:min(520px,calc(100% - 24px));max-height:90dvh;overflow:auto;color:#f8faff;padding:clamp(16px,5vw,28px)}
+#setupGuide::backdrop{background:#080f20d9}
+#setupGuide h2{font-size:clamp(25px,6vw,34px);line-height:1.15}
+#setupGuide p{font-size:19px;line-height:1.45}
+#setupGuide button{width:100%;min-height:54px;font-size:18px;margin-top:8px}
+#setupGuide [hidden]{display:none!important}
+#setupStatus:empty{display:none}
+#setupVisual{height:76px;margin:10px auto;display:grid;place-items:center}
+#setupVisual[data-icon=""]{display:none}
+#setupVisual svg,#setupVisual img{display:none}
+#setupVisual[data-icon="share"] svg,#setupVisual[data-icon="logo"] img{display:block}
+#setupVisual img{width:76px;border-radius:16px}
+#setupCompass{font-size:50px;text-align:center}
+#recoverInvite,#testerFeedback{width:min(490px,calc(100% - 24px));max-height:85dvh;overflow:auto;color:#f8faff}
+#testerFeedback textarea{width:100%;font:inherit;color:#f8faff;background:#101d31;border:1px solid #546a8a;border-radius:8px;padding:10px}

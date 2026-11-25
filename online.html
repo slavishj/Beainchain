@@ -203,7 +203,7 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
 .modeHeading strong{color:#f4f8ff}
 </style>
 <link rel="stylesheet" href="how-to-play.css?v=bullets">
-<link rel="stylesheet" href="guess-keyboard.css?v=cursor"><script src="guess-keyboard.js?v=cursor2" defer></script><link rel="manifest" href="./brainchain.webmanifest"><link rel="apple-touch-icon" href="./brainchain-logo.png"></head>
+<link rel="stylesheet" href="guess-keyboard.css?v=cursor"><script src="guess-keyboard.js?v=cursor2" defer></script><link rel="manifest" href="./brainchain.webmanifest"><link rel="apple-touch-icon" href="./brainchain-logo.png"><link rel="stylesheet" href="./brainchain-setup.css"></head>
 <body>
 <script src="how-to-play.js?v=bullets" defer></script>
 <main>
@@ -287,7 +287,7 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
    </div>
   </details>
  </div>
- <div class="card"><h2>Settings</h2><button id="pushToggle" type="button" class="secondary" disabled>Enable Notifications</button><button id="pushTest" type="button" class="secondary hide">Send Test Alert</button><p id="pushNotice" class="small" role="status"></p><button id="soundToggle" class="secondary soundToggle" type="button" role="switch" aria-label="Sound" aria-checked="true">Sound <span id="soundState" aria-hidden="true">On</span><span class="soundTrack" aria-hidden="true"></span></button></div>
+ <div class="card"><h2>Settings</h2><button id="openSetup" type="button" class="secondary">Set Up BrainChain</button><button id="pushToggle" type="button" class="secondary" disabled>Enable Notifications</button><button id="pushTest" type="button" class="secondary hide">Send Test Alert</button><p id="pushNotice" class="small" role="status"></p><button id="soundToggle" class="secondary soundToggle" type="button" role="switch" aria-label="Sound" aria-checked="true">Sound <span id="soundState" aria-hidden="true">On</span><span class="soundTrack" aria-hidden="true"></span></button></div>
  <div class="card"><h2>Your Player Card</h2><p class="small muted">Stats count Online Play games only</p><div id="profileStats" class="statGrid"></div><ul class="small" style="padding-inline-start:1.25em">
   <li>Word scores are out of 100</li>
   <li>Game scores are out of 400</li>
@@ -338,6 +338,56 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
   </form>
  </section>
 </dialog>
+<dialog id="setupGuide" class="card" aria-labelledby="setupTitle">
+ <h2 id="setupTitle" tabindex="-1"></h2>
+ <p id="setupCopy"></p>
+ <div id="setupVisual" data-icon="">
+  <svg width="62" height="66" viewBox="0 0 62 66" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Share button">
+   <path d="M21 23H12a5 5 0 0 0-5 5v28a5 5 0 0 0 5 5h38a5 5 0 0 0 5-5V28a5 5 0 0 0-5-5h-9M31 43V5m-11 11L31 5l11 11"/>
+  </svg>
+  <img src="./brainchain-logo.png" alt="BrainChain Home Screen icon">
+ </div>
+ <p id="setupStatus" role="status"></p>
+ <button id="setupNext" class="primary" type="button"></button>
+ <button id="setupTest" class="secondary" type="button" hidden>Send Test Alert</button>
+ <button id="setupHelp" class="secondary" type="button" aria-controls="setupDetail">I Don’t See It</button>
+ <div id="setupDetail" hidden>
+  <div id="setupCompass" aria-hidden="true">🧭</div>
+  <p id="setupHelpText"></p>
+  <button id="setupCopyLink" class="secondary" type="button">Copy Link</button>
+  <input id="setupRecovery" aria-label="BrainChain link" readonly hidden>
+ </div>
+ <button id="setupSignIn" class="secondary" type="button" hidden>Sign In to My Existing Profile</button>
+ <button id="setupSkip" class="secondary" type="button"></button>
+</dialog>
+<dialog id="recoverInvite" class="card" aria-labelledby="recoverTitle">
+ <form id="recoverForm" class="stack">
+  <h2 id="recoverTitle">Open your invitation</h2>
+  <p>Go back to the text message. Touch and hold the BrainChain link, then tap <strong>Copy Link</strong>.</p>
+  <label>Come back here. Touch and hold this box, then tap <strong>Paste</strong>.
+   <input id="recoverLink" type="text" required autocomplete="off" autocapitalize="off">
+  </label>
+  <p id="recoverStatus" role="status"></p>
+  <button type="submit" class="primary">Open My Challenge</button>
+  <button id="recoverClose" type="button" class="secondary">Cancel</button>
+ </form>
+</dialog>
+<dialog id="testerFeedback" class="card" aria-labelledby="testerFeedbackTitle">
+ <form id="testerFeedbackForm" class="stack">
+  <h2 id="testerFeedbackTitle">How was your first game?</h2>
+  <label>Your rating
+   <select id="testerRating" required>
+    <option value="">Choose a rating</option><option value="5">5 — Loved it</option>
+    <option value="4">4 — Liked it</option><option value="3">3 — It was okay</option>
+    <option value="2">2 — Some trouble</option><option value="1">1 — A lot of trouble</option>
+   </select>
+  </label>
+  <label>Anything you’d like Jeremy to know? <textarea id="testerComments" rows="3" maxlength="1200"></textarea></label>
+  <p id="testerFeedbackStatus" role="status"></p>
+  <button type="submit" class="primary">Send Feedback</button>
+  <button id="testerFeedbackSkip" type="button" class="secondary">Maybe Later</button>
+ </form>
+</dialog>
 <section id="lobby" class="card stack">
  <div class="gamesHeader"><h2>My Games</h2><button type="button" id="refreshGames">Refresh</button></div>
  <button id="create" class="primary full">Create a challenge</button>
@@ -365,6 +415,7 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
   <div class="stack" id="inviteControls">
    <p id="inviteCodeLabel"></p>
    <button id="share" class="primary">Text invitation</button>
+   <button id="shareTester" class="secondary hide" type="button">Invite a tester</button>
    <button id="copy" class="secondary">Copy invitation link</button>
   </div>
   <div class="stack hide" id="readyControls">
@@ -444,7 +495,8 @@ if (emailConfirmationPage) {
 }
 </script>
 <script src="brain-emoji.js"></script>
-<script src="./brainchain-alerts.js"></script>
+<script src="./brainchain-alerts.js?v=setup"></script>
+<script src="./brainchain-setup.js"></script>
 <script src="./brainchain-session.js"></script>
 <script>
 const {base: BASE, key: KEY, request: authApi} = brainChainSession;
@@ -594,7 +646,15 @@ async function openProfile(){
  }
 }
 function closeProfile(){if($('saveProfile').disabled)return;setProfileEditing(false);profileOpen=false;$('profileButton').classList.remove('hide');$('profilePanel').classList.add('hide');$('lobby').classList.toggle('hide',!!code);$('match').classList.toggle('hide',!code);$('firstTimeTip').classList.add('hide');window.scrollTo(0,0)}
-$('profileButton').onclick=openProfile;$('closeProfile').onclick=closeProfile;
+$('profileButton').onclick=openProfile;
+$('closeProfile').onclick=()=>{
+ closeProfile();
+ if(afterSetupSignIn){
+  const url=new URL(afterSetupSignIn);
+  afterSetupSignIn=null;
+  openSetupGuide(url.searchParams.get('invite'),url.searchParams.get('setup')==='tester',true);
+ }
+};
 $('choosePhoto').onclick=()=>$('profilePhoto').click();
 $('takePhoto').onclick=()=>$('cameraPhoto').click();
 function selectedPhoto(e){
@@ -763,7 +823,7 @@ $('accountLinkForm').onsubmit = async event => {
    }
    if(currentId!==signedIn.user.id && localStorage.getItem('bc_alert_owner')) await disableBrainAlerts({switchingProfile:true});
    session = brainChainSession.save(signedIn);
-   location.replace('./index.html#home');
+   location.replace(afterSetupSignIn || './index.html#home');
    return;
   }
   await auth();
@@ -1121,7 +1181,7 @@ async function loadGames(){
  }catch(e){$('gamesStatus').textContent=e.message}
  finally{loadingGames=false}
 }
-function invitation(){return location.origin+location.pathname+'?invite='+encodeURIComponent(code)}
+function invitation(){return brainChainSetup.link(code,false).href}
 async function show(codeToShow){
  clearTimeout(feedbackTimer);$('feedbackPop').classList.add('hide');
  chatDialog.close();game=null;$('headline').textContent='Loading match…';$('headline').removeAttribute('data-turn');setConnectionStatus('');$('message').textContent='';setChatUnread(false);$('openChat').classList.add('hide');
@@ -1163,6 +1223,7 @@ async function refresh(background=false){
   render(g);
   game=g;
   if(justCompleted)showMatchResult(g);
+  if(g.status==='completed')offerTesterFeedback(matchCode);
   if(recordTurn(matchCode,g.status==='active'&&g.currentPlayer===g.myPlayer))playTurnTone();
   setConnectionStatus('');
   refreshChat();
@@ -1290,6 +1351,7 @@ async function refreshMailboxStatus() {
   const status = await mailRequest('status', {p_admin:false});
   $('playerMailbox').classList.toggle('hide', !status.enabled);
   $('adminMailbox').classList.toggle('hide', !status.admin);
+  $('shareTester').classList.toggle('hide', !status.admin);
   $('openPlayerMap').classList.toggle('hide', !status.admin);
   mailBadge('profileMailBadge', status.playerUnread+status.adminUnread);
   mailBadge('playerMailBadge', status.playerUnread);
@@ -1586,7 +1648,93 @@ setInterval(refreshMailboxStatus, 15000);
 document.addEventListener('visibilitychange', refreshMailboxStatus);
 refreshMailboxStatus();
 
+async function joinInvitation(inviteCode, tester) {
+ await auth();
+ await rpc('brainchain_join_game',{p_code:inviteCode}).catch(async () => {
+  const existing = await rpc('bc_view',{p_code:inviteCode});
+  if (!existing?.myPlayer) throw Error('Could not join');
+ });
+ if (tester && !localStorage.getItem('bc_tester_feedback_'+session.user.id))
+  localStorage.setItem('bc_tester_feedback_'+session.user.id,inviteCode.toUpperCase());
+ await show(inviteCode);
+}
+function alertsForSetup(){
+ return {enabled:!pushTest.classList.contains('hide'),available:!pushToggle.disabled,message:pushNotice.textContent};
+}
+let afterSetupSignIn;
+function openSetupGuide(inviteCode, tester, resume) {
+ brainChainSetup.open({code:inviteCode,tester,resume,
+  alerts:async()=>{await prepareBrainAlerts();return alertsForSetup()},
+  enable:async()=>{await changeBrainAlerts({testOnEnable:false});return alertsForSetup()},
+  test:async()=>{await sendTestAlert();return pushNotice.textContent},
+  play:()=>joinInvitation(inviteCode,tester),
+  signIn:inviteCode&&brainChainSetup.standalone&&!brainChainSession.read()?.user?.email?async()=>{
+   const url=brainChainSetup.link(inviteCode,tester);
+   url.searchParams.set('resume','1');
+   afterSetupSignIn=url.href;
+   await openProfile();
+   $('accountDetails').open=true;
+   $('accountAction').value='signin';
+   renderLinkAction();
+   $('linkEmail').focus();
+  }:null});
+}
+$('openSetup').onclick=()=>openSetupGuide();
+$('shareTester').onclick=async()=>{
+ const url=brainChainSetup.link(code,true).href;
+ const text='Hey! It’s Jeremy Slavish. I built a word game called BrainChain, and I’d love your help testing it. I sent you a game to try. If you have a few minutes, would you play it and tell me what you think? An honest rating and anything that felt confusing would really help me.\n\nIf you’re unsure this is really from me, please text me directly at the number you already have for me before opening the link.\n\nOpen your BrainChain challenge';
+ if(navigator.share){
+  try{await navigator.share({title:'A BrainChain invite from Jeremy',text,url});return}
+  catch(error){if(error.name==='AbortError')return}
+ }
+ try{await navigator.clipboard.writeText(text+'\n'+url);$('message').textContent='Tester invitation copied'}
+ catch{ $('message').textContent='Couldn’t copy the invitation. Please try again.' }
+};
+$('recoverClose').onclick=()=>$('recoverInvite').close();
+$('recoverForm').onsubmit=event=>{
+ event.preventDefault();
+ try {
+  const url=new URL($('recoverLink').value.trim());
+  const inviteCode=url.searchParams.get('invite');
+  if(url.origin!==location.origin || !/^[a-z0-9-]{1,64}$/i.test(inviteCode||''))throw Error();
+  location.assign(brainChainSetup.link(inviteCode,url.searchParams.get('setup')==='tester'));
+ } catch {
+  $('recoverStatus').textContent='Copy the BrainChain link from your text message and paste it here.';
+ }
+};
+function offerTesterFeedback(matchCode) {
+ const key='bc_tester_feedback_'+session.user.id;
+ if(localStorage.getItem(key)!==matchCode)return;
+ const dialog=$('testerFeedback');
+ if(dialog.open||$('setupGuide').open||document.querySelector('dialog[open]'))return;
+ const form=$('testerFeedbackForm');
+ const status=$('testerFeedbackStatus');
+ const send=form.querySelector('button[type=submit]');
+ function dismiss(){
+  localStorage.setItem(key,'done');
+  dialog.close();
+ }
+ form.reset();
+ status.textContent='';
+ $('testerFeedbackSkip').onclick=dismiss;
+ dialog.oncancel=event=>{event.preventDefault();if(!send.disabled)dismiss()};
+ form.onsubmit=async event=>{
+  event.preventDefault();
+  send.disabled=true;
+  $('testerFeedbackSkip').disabled=true;
+  try{
+   const comments=$('testerComments').value.trim();
+   await mailRequest('new',{p_admin:false,p_kind:'Design suggestion',p_subject:'First game feedback',
+    p_body:'Rating: '+$('testerRating').value+'/5'+(comments?'\n\n'+comments:'')});
+   dismiss();
+  }catch{status.textContent='Your feedback couldn’t be sent. Please try again.'}
+  finally{send.disabled=false;$('testerFeedbackSkip').disabled=false}
+ };
+ dialog.showModal();
+}
 (async()=>{try{const params=new URLSearchParams(location.search);
+ if(location.hash==='#open-invite')$('recoverInvite').showModal();
+ if(['#setup','#setup-resume'].includes(location.hash)){await openProfile();openSetupGuide(undefined,false,location.hash==='#setup-resume');return}
  const kind=params.get('alert'),target=params.get('target');
  if(target && ['turn','chat'].includes(kind)){
   await show(target);
@@ -1599,7 +1747,14 @@ refreshMailboxStatus();
  let c=params.get('invite');
  if(!c && location.hash==='#profile'){await openProfile();await loadGames();return}
  await auth();
- if(c){await rpc('brainchain_join_game',{p_code:c}).catch(async()=>{let g=await rpc('bc_view',{p_code:c});if(!g)throw Error('Could not join')});await show(c)}else{await loadGames();if(location.hash==='#your-turn'&&waitingTurns.length)turnAlert.click()}}catch(e){err(e)}})();
+ if(c){
+  const tester=params.get('setup')==='tester';
+  const saved=brainChainSetup.pending();
+  const resume=params.has('resume') || saved?.code===c;
+  if(params.has('setup') && (resume || !localStorage.getItem('bc_setup_seen'))){
+   openSetupGuide(c,tester,resume);
+  }else await joinInvitation(c,tester);
+ }else{await loadGames();if(location.hash==='#your-turn'&&waitingTurns.length)turnAlert.click()}}catch(e){err(e)}})();
 </script>
 </body>
 </html>

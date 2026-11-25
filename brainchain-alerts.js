@@ -41,7 +41,8 @@ async function disableBrainAlerts({switchingProfile=false}={}){
  localStorage.removeItem('bc_alert_owner');
  await applyBrainBadge(0);
 }
-pushToggle.onclick=async()=>{
+async function changeBrainAlerts({testOnEnable=true}={}){
+ if(pushToggle.disabled)return;
  pushToggle.disabled=true;
  try{
   if(pushToggle.textContent==='Disable Notifications'){
@@ -69,11 +70,12 @@ pushToggle.onclick=async()=>{
   pushToggle.textContent='Disable Notifications';
   pushNotice.textContent='Notifications are on for this device.';
   pushTest.classList.remove('hide');
-  await sendTestAlert();
+  if(testOnEnable)await sendTestAlert();
   await refreshBrainBadge();
  }catch(error){pushNotice.textContent=error.message}
  finally{pushToggle.disabled=false}
-};
+}
+pushToggle.onclick=()=>changeBrainAlerts();
 setInterval(refreshBrainBadge,15000);
 document.addEventListener('visibilitychange',refreshBrainBadge);
 
