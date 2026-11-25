@@ -207,7 +207,7 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
 .modeHeading strong{color:#f4f8ff}
 </style>
 <link rel="stylesheet" href="how-to-play.css?v=bullets">
-<link rel="stylesheet" href="guess-keyboard.css?v=cursor"><script src="guess-keyboard.js?v=cursor2" defer></script><link rel="manifest" href="./brainchain.webmanifest"><link rel="apple-touch-icon" href="./brainchain-logo.png"><link rel="stylesheet" href="./brainchain-setup.css"></head>
+<link rel="stylesheet" href="guess-keyboard.css?v=cursor"><script src="guess-keyboard.js?v=cursor2" defer></script><link rel="manifest" href="./brainchain.webmanifest"><link rel="apple-touch-icon" href="./brainchain-logo.png"><link rel="stylesheet" href="./brainchain-setup.css?v=iphone-menu"></head>
 <body>
 <script src="how-to-play.js?v=bullets" defer></script>
 <main>
@@ -352,6 +352,7 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
  <h2 id="setupTitle" tabindex="-1"></h2>
  <p id="setupCopy"></p>
  <div id="setupVisual" data-icon="">
+  <span class="setupMenuIcon" role="img" aria-label="Three-line menu beside the web address"><i></i><i></i><i></i></span>
   <svg width="62" height="66" viewBox="0 0 62 66" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Share button">
    <path d="M21 23H12a5 5 0 0 0-5 5v28a5 5 0 0 0 5 5h38a5 5 0 0 0 5-5V28a5 5 0 0 0-5-5h-9M31 43V5m-11 11L31 5l11 11"/>
   </svg>
@@ -361,6 +362,7 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
  <button id="setupNext" class="primary" type="button"></button>
  <button id="setupTest" class="secondary" type="button" hidden>Send Test Alert</button>
  <button id="setupHelp" class="secondary" type="button" aria-controls="setupDetail">I Don’t See It</button>
+ <button id="setupSkip" class="secondary" type="button"></button>
  <div id="setupDetail" hidden>
   <div id="setupCompass" aria-hidden="true">🧭</div>
   <p id="setupHelpText"></p>
@@ -368,7 +370,6 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
   <input id="setupRecovery" aria-label="BrainChain link" readonly hidden>
  </div>
  <button id="setupSignIn" class="secondary" type="button" hidden>Sign In to My Existing Profile</button>
- <button id="setupSkip" class="secondary" type="button"></button>
 </dialog>
 <dialog id="recoverInvite" class="card" aria-labelledby="recoverTitle">
  <form id="recoverForm" class="stack">
@@ -506,7 +507,7 @@ if (emailConfirmationPage) {
 </script>
 <script src="brain-emoji.js"></script>
 <script src="./brainchain-alerts.js?v=setup"></script>
-<script src="./brainchain-setup.js"></script>
+<script src="./brainchain-setup.js?v=iphone-menu"></script>
 <script src="./brainchain-session.js"></script>
 <script>
 const {base: BASE, key: KEY, request: authApi} = brainChainSession;

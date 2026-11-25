@@ -58,8 +58,8 @@ const brainChainSetup = (() => {
    const cards = [
     [tester ? 'Jeremy invited you to play BrainChain' : code ? 'You’re invited to play BrainChain' : 'Set Up BrainChain',
      'Add BrainChain to your Home Screen for a better playing experience. Open it with one tap and get alerts for new messages and when it’s your turn.', '', 'Start Setup'],
-    ['1. Find the Share button', 'Look for a square with an arrow pointing up. The picture shows what it looks like.', 'share', 'I Found It'],
-    ['2. Add BrainChain', 'Tap the square with the arrow. Scroll down and tap Add to Home Screen. If you see Open as Web App, make sure the switch is green. Then tap Add.', 'share', 'Done — Next Step'],
+    ['1. Find Share', 'Look beside the web address. If you see three lines, tap them and look for Share. If you see a square with an up arrow, that’s Share.', 'menu', 'I Found Share'],
+    ['2. Add BrainChain', 'Tap Share. Scroll down and tap Add to Home Screen. If you see Open as Web App, make sure it’s on. Tap Add.', 'share', 'Done — Next Step'],
     ['3. Open BrainChain', 'Go to the screen where you open your other apps. Find the BrainChain icon and tap it.', 'logo', 'Done — Next Step'],
     ['4. Turn on alerts', 'Tap Enable Alerts. When your phone asks, tap Allow.', '', 'Enable Alerts'],
     [code ? '5. Play your first game' : '5. You’re ready', code ? 'Your challenge is ready to open.' : 'You can change your alerts anytime in Profile.', '', code ? gameLabel : 'Done']
@@ -149,12 +149,13 @@ const brainChainSetup = (() => {
   };
   help.onclick = () => {
    detail.hidden = !detail.hidden;
-   find('setupCopyLink').hidden = !iphone || step > 2;
-   find('setupCompass').hidden = !iphone || step > 2;
+   find('setupCopyLink').hidden = !iphone || step !== 1;
+   find('setupCompass').hidden = !iphone || step !== 1;
    find('setupHelpText').textContent = step === 4 ?
     'If you already tapped Don’t Allow, open Settings on your phone. Tap Notifications, then BrainChain, and turn on Allow Notifications.' :
+    step === 2 && iphone ? 'In the Share list, scroll to the bottom and tap Edit Actions. Add Add to Home Screen if it’s listed there.' :
     step === 3 ? 'On an iPhone, swipe down on the screen where your apps are and type BrainChain. Tap the BrainChain icon when it appears.' : iphone ?
-   'If you can’t find the square with the arrow or Add to Home Screen, look for the blue compass icon called Safari. Copy the link below. Open Safari, tap the address box, then touch and hold it and tap Paste and Go. You can also tap Play Now and set up BrainChain later.' :
+   'Still can’t find Share? Tap Copy Link below. Open the blue compass app called Safari. Touch and hold the web address box, then tap Paste and Go.' :
    'If your phone doesn’t offer an install button, tap Play Now. You can return to this guide from Profile.';
   };
   const copyLink = find('setupCopyLink');
