@@ -1692,7 +1692,7 @@ function openSetupGuide(inviteCode, tester, resume) {
 $('openSetup').onclick=()=>openSetupGuide();
 $('shareTester').onclick=async()=>{
  const url=brainChainSetup.link(code,true).href;
- const text='Hey! It’s Jeremy Slavish. I built a word game called BrainChain, and I’d love your help testing it. I sent you a game to try. If you have a few minutes, would you play it and tell me what you think? An honest rating and anything that felt confusing would really help me.\n\nIf you’re unsure this is really from me, please text me directly at the number you already have for me before opening the link.\n\nOpen your BrainChain challenge';
+ const text='Hey! It’s Jeremy Slavish. I built a word game called BrainChain, and I’d love your help testing it. It might still be a little rough around the edges, but that’s why I need your help. I sent you a game to try. If you have a few minutes, would you play it and tell me what you think? An honest rating and anything that felt confusing would really help me.\n\nIf you’re unsure this is really from me, please text me directly at the number you already have for me before opening the link.\n\nOpen your BrainChain challenge';
  if(navigator.share){
   try{await navigator.share({title:'A BrainChain invite from Jeremy',text,url});return}
   catch(error){if(error.name==='AbortError')return}
