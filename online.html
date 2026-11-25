@@ -246,9 +246,25 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
   <p class="profileAlert small" id="profileMessage" role="status"></p>
   <ul class="small profileNotes">
    <li>Other players can see your photo and screen name</li>
-   <li>Your beta profile is linked to this browser</li>
-   <li>Email account recovery is coming later</li>
   </ul>
+ </div>
+ <div class="card stack">
+  <h2>Play on another device</h2>
+  <form id="accountLinkForm" class="stack">
+   <label for="accountAction">Choose an action</label>
+   <select id="accountAction">
+    <option value="link">Link this profile to my email</option>
+    <option value="password">Set a password after verifying email</option>
+    <option value="signin">Sign in to an existing profile</option>
+   </select>
+   <p class="small" id="accountHelp"></p>
+   <label id="linkEmailLabel" for="linkEmail">Email</label>
+   <input id="linkEmail" type="email" autocomplete="email" autocapitalize="none" required>
+   <label id="linkPasswordLabel" for="linkPassword">Password</label>
+   <input id="linkPassword" type="password">
+   <button id="accountContinue" class="primary" type="submit">Send verification email</button>
+   <p id="accountResult" class="small" role="status"></p>
+  </form>
  </div>
  <div class="card stack">
   <button id="playerMailbox" type="button" class="secondary hide">Messages <span id="playerMailBadge" class="mailBadge hide"></span></button>
@@ -413,6 +429,20 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
  </form>
  <p id="chatStatus" role="status"></p>
 </dialog>
+<script>
+const emailConfirmationPage = new URLSearchParams(location.search).has('email-confirmation');
+if (emailConfirmationPage) {
+ const callback = new URLSearchParams(location.hash.slice(1));
+ const failed = callback.has('error') || new URLSearchParams(location.search).has('error');
+ history.replaceState(null, '', location.pathname);
+ document.querySelector('main')?.setAttribute('hidden', '');
+ const notice = document.createElement('section');
+ notice.className = 'card';
+ notice.textContent = failed ? 'This confirmation link could not be used. Return to your original BrainChain profile to request another email.' :
+  'Return to the BrainChain window that shows your original player name. In Profile, choose “Set a password after verifying email.”';
+ document.body.prepend(notice);
+}
+</script>
 <script src="brain-emoji.js"></script>
 <script>
 const BASE='https://hsdvkdvimzyyyjdhbtzb.supabase.co';
@@ -701,6 +731,7 @@ async function authApi(path,method,body,token){
 async function auth(){
  const saved=JSON.parse(localStorage.getItem('bc_auth')||'null');
  if(saved?.expires_at && saved.expires_at*1000>Date.now()+60000){session=saved;return}
+ if (emailConfirmationPage) throw Error('Return to your original profile.');
  if(!authRequest){
   authRequest=(saved?.refresh_token
    ?authApi('/token?grant_type=refresh_token','POST',{refresh_token:saved.refresh_token})
@@ -708,6 +739,82 @@ async function auth(){
  }
  await authRequest;
 }
+function renderLinkAction() {
+ const action = $('accountAction').value;
+ const signIn = action === 'signin';
+ const emailNeeded = action !== 'password';
+ const passwordNeeded = action !== 'link';
+ $('linkEmail').disabled = !emailNeeded;
+ $('linkPassword').disabled = !passwordNeeded;
+ for (const id of ['linkEmail', 'linkEmailLabel']) $(id).classList.toggle('hide', !emailNeeded);
+ for (const id of ['linkPassword', 'linkPasswordLabel']) $(id).classList.toggle('hide', !passwordNeeded);
+ $('linkPassword').required = passwordNeeded;
+ $('linkPassword').minLength = signIn ? 1 : 8;
+ $('linkPassword').autocomplete = signIn ? 'current-password' : 'new-password';
+ $('linkPassword').value = '';
+ $('accountHelp').textContent = signIn ? 'Use the email and password linked to your original player profile.' :
+  emailNeeded ? 'Start in the browser that shows the player name and games you want to keep.' :
+  'After confirming the email, return to the original browser and choose a password of at least 8 characters.';
+ $('accountContinue').textContent = signIn ? 'Sign in' : emailNeeded ? 'Send verification email' : 'Save password';
+ $('accountResult').textContent = '';
+}
+$('accountAction').onchange = renderLinkAction;
+renderLinkAction();
+
+$('accountLinkForm').onsubmit = async event => {
+ event.preventDefault();
+ const button = $('accountContinue');
+ if (button.disabled) return;
+ const action = $('accountAction').value;
+ const email = $('linkEmail').value.trim();
+ const password = $('linkPassword').value;
+ const result = $('accountResult');
+ button.disabled = true;
+ $('accountAction').disabled = true;
+ result.textContent = 'Please wait…';
+ try {
+  await auth();
+  const currentId = session.user.id;
+  if (action === 'signin') {
+   const signedIn = await authApi('/token?grant_type=password', 'POST', {email, password});
+   if (currentId !== signedIn.user.id && profileData?.screenName &&
+       !confirm('Switch this browser from ' + profileData.screenName + ' to the profile linked to this email?')) {
+    result.textContent = 'Sign-in canceled.';
+    return;
+   }
+   saveSession(signedIn);
+   location.replace('./index.html#home');
+   return;
+  }
+  const user = await authApi('/user', 'GET', undefined, session.access_token);
+  if (user.id !== currentId) throw Error('Reopen the original player profile and try again.');
+  if (action === 'link' && !user.email_confirmed_at) {
+   const landing = new URL('./online.html?email-confirmation=1', location.href);
+   await authApi('/user?redirect_to=' + encodeURIComponent(landing.href), 'PUT', {email}, session.access_token);
+   $('accountAction').value = 'password';
+   renderLinkAction();
+   result.textContent = 'Check your email and tap the confirmation link. Then come back to this original window to save your password.';
+   return;
+  }
+  if (!user.email || !user.email_confirmed_at) throw Error('Confirm your email first, then try Save password again in this window.');
+  if (action === 'link') {
+   $('accountAction').value = 'password';
+   renderLinkAction();
+   result.textContent = 'This profile already has a verified email: ' + user.email + '.';
+   return;
+  }
+  const updated = await authApi('/user', 'PUT', {password}, session.access_token);
+  if (updated.id !== currentId) throw Error('Could not verify the player profile.');
+  $('linkPassword').value = '';
+  $('accountEmail').textContent = user.email;
+  result.textContent = 'Password saved for ' + user.email + '. On your Home Screen, open Profile and choose “Sign in to an existing profile.”';
+ } catch (error) {
+  result.textContent = error.message || 'Please try again.';
+ } finally {
+  button.disabled = false;
+  $('accountAction').disabled = false;
+ }
+};
 async function rpc(name,params={}){
  await auth();
  let r=await fetch(BASE+'/rest/v1/rpc/'+name,{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+session.access_token,'Content-Type':'application/json'},body:JSON.stringify(params)});
