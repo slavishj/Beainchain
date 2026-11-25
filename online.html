@@ -207,7 +207,7 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
 .modeHeading strong{color:#f4f8ff}
 </style>
 <link rel="stylesheet" href="how-to-play.css?v=bullets">
-<link rel="stylesheet" href="guess-keyboard.css?v=cursor"><script src="guess-keyboard.js?v=cursor2" defer></script><link rel="manifest" href="./brainchain.webmanifest"><link rel="apple-touch-icon" href="./brainchain-logo.png"><link rel="stylesheet" href="./brainchain-setup.css?v=iphone-menu"></head>
+<link rel="stylesheet" href="guess-keyboard.css?v=cursor"><script src="guess-keyboard.js?v=cursor2" defer></script><link rel="manifest" href="./brainchain.webmanifest"><link rel="apple-touch-icon" href="./brainchain-logo.png"><link rel="stylesheet" href="./brainchain-setup.css?v=share-options"></head>
 <body>
 <script src="how-to-play.js?v=bullets" defer></script>
 <main>
@@ -352,10 +352,12 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
  <h2 id="setupTitle" tabindex="-1"></h2>
  <p id="setupCopy"></p>
  <div id="setupVisual" data-icon="">
-  <span class="setupMenuIcon" role="img" aria-label="Three-line menu beside the web address"><i></i><i></i><i></i></span>
+  <span class="setupMenuOption"><span class="setupMenuIcon" aria-hidden="true"><i></i><i></i><i></i></span><span>Three-line menu</span></span>
+  <span class="setupShareOption">
   <svg width="62" height="66" viewBox="0 0 62 66" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Share button">
    <path d="M21 23H12a5 5 0 0 0-5 5v28a5 5 0 0 0 5 5h38a5 5 0 0 0 5-5V28a5 5 0 0 0-5-5h-9M31 43V5m-11 11L31 5l11 11"/>
   </svg>
+  <span>Share button</span></span>
   <img src="./brainchain-logo.png" alt="BrainChain Home Screen icon">
  </div>
  <p id="setupStatus" role="status"></p>
@@ -507,7 +509,7 @@ if (emailConfirmationPage) {
 </script>
 <script src="brain-emoji.js"></script>
 <script src="./brainchain-alerts.js?v=setup"></script>
-<script src="./brainchain-setup.js?v=iphone-menu"></script>
+<script src="./brainchain-setup.js?v=share-options"></script>
 <script src="./brainchain-session.js"></script>
 <script>
 const {base: BASE, key: KEY, request: authApi} = brainChainSession;

@@ -58,7 +58,7 @@ const brainChainSetup = (() => {
    const cards = [
     [tester ? 'Jeremy invited you to play BrainChain' : code ? 'You’re invited to play BrainChain' : 'Set Up BrainChain',
      'Add BrainChain to your Home Screen for a better playing experience. Open it with one tap and get alerts for new messages and when it’s your turn.', '', 'Start Setup'],
-    ['1. Find Share', 'Look beside the web address. If you see three lines, tap them and look for Share. If you see a square with an up arrow, that’s Share.', 'menu', 'I Found Share'],
+    ['1. Find Share', 'Look beside the web address at the bottom of this screen for one of the icons below. If your web address is at the top, look there instead. Tap the three lines, then tap Share. If you see the square with the up arrow, tap that to open Share.', 'share-options', 'I Found Share'],
     ['2. Add BrainChain', 'Tap Share. Scroll down and tap Add to Home Screen. If you see Open as Web App, make sure it’s on. Tap Add.', 'share', 'Done — Next Step'],
     ['3. Open BrainChain', 'Go to the screen where you open your other apps. Find the BrainChain icon and tap it.', 'logo', 'Done — Next Step'],
     ['4. Turn on alerts', 'Tap Enable Alerts. When your phone asks, tap Allow.', '', 'Enable Alerts'],
