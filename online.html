@@ -54,6 +54,10 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 .onlineToolbar :focus-visible{outline:3px solid #8cf2cc;outline-offset:2px}
 .toolbar button{min-height:42px;padding:10px 14px}
 .soundToggle{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:10px 14px}
+.profileSettings > h2,.profileSettings > #pushNotice{margin:0}
+.profileSettings > #pushNotice:empty{display:none}
+.profileSettings > button{min-height:52px}
+.profileSettings > .soundToggle{justify-content:center}
 #soundState{min-width:2ch;text-align:center;color:#d6deef}
 .soundTrack{width:34px;height:20px;padding:3px;border-radius:12px;background:#64748b;display:inline-flex;align-items:center}
 .soundTrack::before{content:'';width:14px;height:14px;border-radius:50%;background:white}
@@ -287,7 +291,13 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
    </div>
   </details>
  </div>
- <div class="card"><h2>Settings</h2><button id="openSetup" type="button" class="secondary">Set Up BrainChain</button><button id="pushToggle" type="button" class="secondary" disabled>Enable Notifications</button><button id="pushTest" type="button" class="secondary hide">Send Test Alert</button><p id="pushNotice" class="small" role="status"></p><button id="soundToggle" class="secondary soundToggle" type="button" role="switch" aria-label="Sound" aria-checked="true">Sound <span id="soundState" aria-hidden="true">On</span><span class="soundTrack" aria-hidden="true"></span></button></div>
+ <div class="card stack profileSettings">
+  <h2>Settings</h2><button id="openSetup" type="button" class="secondary">Set Up BrainChain</button>
+  <button id="pushToggle" type="button" class="secondary" disabled>Enable Notifications</button>
+  <button id="pushTest" type="button" class="secondary hide">Send Test Alert</button>
+  <p id="pushNotice" class="small" role="status"></p>
+  <button id="soundToggle" class="secondary soundToggle" type="button" role="switch" aria-label="Sound" aria-checked="true">Sound <span id="soundState" aria-hidden="true">On</span><span class="soundTrack" aria-hidden="true"></span></button>
+ </div>
  <div class="card"><h2>Your Player Card</h2><p class="small muted">Stats count Online Play games only</p><div id="profileStats" class="statGrid"></div><ul class="small" style="padding-inline-start:1.25em">
   <li>Word scores are out of 100</li>
   <li>Game scores are out of 400</li>
