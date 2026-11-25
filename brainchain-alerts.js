@@ -31,10 +31,11 @@ async function prepareBrainAlerts(){
   if(enabled)await applyBrainBadge(state.count);
  }catch{pushNotice.textContent='Notifications could not be loaded. Reopen Profile to retry.'}
 }
-async function disableBrainAlerts(){
+async function disableBrainAlerts({switchingProfile=false}={}){
  const sub=await pushRegistration?.pushManager.getSubscription();
  if(sub){
-  await rpc('bc_push_register',{sub:sub.toJSON(),enabled:false});
+  try{await rpc('bc_push_register',{sub:sub.toJSON(),enabled:false})}
+  catch(error){if(!switchingProfile)throw error}
   await sub.unsubscribe();
  }
  localStorage.removeItem('bc_alert_owner');

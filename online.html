@@ -445,9 +445,9 @@ if (emailConfirmationPage) {
 </script>
 <script src="brain-emoji.js"></script>
 <script src="./brainchain-alerts.js"></script>
+<script src="./brainchain-session.js"></script>
 <script>
-const BASE='https://hsdvkdvimzyyyjdhbtzb.supabase.co';
-const KEY='sb_publishable_r5S0XJMRaDBOXIhiXzslFA_tUYSHuAR';
+const {base: BASE, key: KEY, request: authApi} = brainChainSession;
 const $=id=>document.getElementById(id);
 const AVATARS=['🧠','🦊','🐻','🦉','🐸','🤖','🐙','🦁','🐼','🐯','🐢','🦄'];
 let profileData=null,selectedAvatar='🧠',profilePhotoPath=null,profileFile=null,profileOpen=false,profilePhotoPreview='',lastPlayersFetch=0;
@@ -715,31 +715,9 @@ const err=e=>{const m=e.message||String(e);$('message').textContent=m;$('gamesSt
 function labels(){try{return JSON.parse(localStorage.getItem('bc_labels')||'{}')}catch(e){return {}}}
 function storeLabel(c,name){const d=labels();d[c]=name;localStorage.setItem('bc_labels',JSON.stringify(d))}
 function safe(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-let authRequest=null;
-function saveSession(data){
- if(!data?.access_token||!data.refresh_token||!data.user?.id)throw Error('BrainChain could not complete sign-in.');
- const next={...data,expires_at:Math.floor(Date.now()/1000)+(data.expires_in||3600)};
- localStorage.setItem('bc_auth',JSON.stringify(next));
- session=next;
-}
-async function authApi(path,method,body,token){
- const headers={apikey:KEY,'Content-Type':'application/json'};
- if(token)headers.Authorization='Bearer '+token;
- const r=await fetch(BASE+'/auth/v1'+path,{method,headers,body:body===undefined?undefined:JSON.stringify(body)});
- const data=await r.json().catch(()=>null);
- if(!r.ok)throw Error(data?.msg||data?.message||data?.error_description||'Could not reach the sign-in service.');
- return data;
-}
 async function auth(){
- const saved=JSON.parse(localStorage.getItem('bc_auth')||'null');
- if(saved?.expires_at && saved.expires_at*1000>Date.now()+60000){session=saved;return}
  if (emailConfirmationPage) throw Error('Return to your original profile.');
- if(!authRequest){
-  authRequest=(saved?.refresh_token
-   ?authApi('/token?grant_type=refresh_token','POST',{refresh_token:saved.refresh_token})
-   :authApi('/signup','POST',{data:{}})).then(saveSession).finally(()=>{authRequest=null});
- }
- await authRequest;
+ session = await brainChainSession.get({createGuest: true});
 }
 function renderLinkAction() {
  const action = $('accountAction').value;
@@ -775,20 +753,21 @@ $('accountLinkForm').onsubmit = async event => {
  $('accountAction').disabled = true;
  result.textContent = 'Please wait…';
  try {
-  await auth();
-  const currentId = session.user.id;
   if (action === 'signin') {
+   const currentId = brainChainSession.read()?.user?.id;
    const signedIn = await authApi('/token?grant_type=password', 'POST', {email, password});
    if (currentId !== signedIn.user.id && profileData?.screenName &&
        !confirm('Switch this browser from ' + profileData.screenName + ' to the profile linked to this email?')) {
     result.textContent = 'Sign-in canceled.';
     return;
    }
-   if(currentId!==signedIn.user.id && localStorage.getItem('bc_alert_owner')) await disableBrainAlerts();
-   saveSession(signedIn);
+   if(currentId!==signedIn.user.id && localStorage.getItem('bc_alert_owner')) await disableBrainAlerts({switchingProfile:true});
+   session = brainChainSession.save(signedIn);
    location.replace('./index.html#home');
    return;
   }
+  await auth();
+  const currentId = session.user.id;
   const user = await authApi('/user', 'GET', undefined, session.access_token);
   if (user.id !== currentId) throw Error('Reopen the original player profile and try again.');
   if (action === 'link' && !user.email_confirmed_at) {
@@ -1607,7 +1586,7 @@ setInterval(refreshMailboxStatus, 15000);
 document.addEventListener('visibilitychange', refreshMailboxStatus);
 refreshMailboxStatus();
 
-(async()=>{try{await auth();const params=new URLSearchParams(location.search);
+(async()=>{try{const params=new URLSearchParams(location.search);
  const kind=params.get('alert'),target=params.get('target');
  if(target && ['turn','chat'].includes(kind)){
   await show(target);
@@ -1617,8 +1596,10 @@ refreshMailboxStatus();
  if(target && ['mail','admin'].includes(kind)){
   await openProfile();openMailbox(kind==='admin',target);return;
  }
- let c=params.get('invite');if(c){await rpc('brainchain_join_game',{p_code:c}).catch(async()=>{let g=await rpc('bc_view',{p_code:c});if(!g)throw Error('Could not join')});await show(c)}else{await loadGames();if(location.hash==='#profile')await openProfile();
-else if(location.hash==='#your-turn'&&waitingTurns.length)turnAlert.click()}}catch(e){err(e)}})();
+ let c=params.get('invite');
+ if(!c && location.hash==='#profile'){await openProfile();await loadGames();return}
+ await auth();
+ if(c){await rpc('brainchain_join_game',{p_code:c}).catch(async()=>{let g=await rpc('bc_view',{p_code:c});if(!g)throw Error('Could not join')});await show(c)}else{await loadGames();if(location.hash==='#your-turn'&&waitingTurns.length)turnAlert.click()}}catch(e){err(e)}})();
 </script>
 </body>
 </html>
