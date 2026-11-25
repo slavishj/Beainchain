@@ -82,9 +82,27 @@ $$;
 revoke all on function public.bc_push_items(uuid),public.bc_push_claim(),public.bc_push_status(),public.bc_push_register(jsonb,boolean),public.bc_push_chat(text,bigint,boolean) from public,anon,authenticated;
 grant execute on function public.bc_push_claim() to service_role;
 grant execute on function public.bc_push_status(), public.bc_push_register(jsonb,boolean), public.bc_push_chat(text,bigint,boolean) to authenticated;
+create table if not exists public.bc_push_test_times (
+ owner uuid primary key references auth.users on delete cascade, last_test timestamptz not null
+);
+alter table public.bc_push_test_times enable row level security;
+revoke all on public.bc_push_test_times from public,anon,authenticated;
+create or replace function public.bc_push_test() returns void
+language plpgsql security definer set search_path='' as $$
+declare u uuid:=auth.uid(); thread bigint;
+begin
+ if not exists(select 1 from public.bc_push_devices where owner=u) then raise exception 'Enable notifications first'; end if;
+ insert into public.bc_push_test_times values (u,now()) on conflict(owner) do update set last_test=now()
+ where bc_push_test_times.last_test < now()-interval '90 seconds';
+ if not found then raise exception 'A test was sent recently. Please wait 90 seconds before trying again.'; end if;
+ insert into public.bc_mail_threads(player_id,kind,subject) values(u,'Official notice','BrainChain notification test') returning id into thread;
+ insert into public.bc_mail_messages(thread_id,from_admin,body) values(thread,true,'Your BrainChain test message arrived. Opening this message marks it as read.');
+end $$;
+revoke all on function public.bc_push_test() from public,anon,authenticated;
+grant execute on function public.bc_push_test() to authenticated;
 select cron.schedule('brainchain-push','* * * * *',$job$
  select net.http_post(url:='https://hsdvkdvimzyyyjdhbtzb.supabase.co/functions/v1/brainchain-push',
- headers:=jsonb_build_object('Content-Type','application/json','x-bc-dispatch',dispatcher::text),body:='{}'::jsonb,timeout_milliseconds:=35000)
- from public.bc_push_config where public_key is null or exists(select 1 from public.bc_push_devices)
+ headers:=jsonb_build_object('Content-Type','application/json','apikey','sb_publishable_r5S0XJMRaDBOXIhiXzslFA_tUYSHuAR','Authorization','Bearer sb_publishable_r5S0XJMRaDBOXIhiXzslFA_tUYSHuAR','x-bc-dispatch',dispatcher::text),body:='{}'::jsonb,timeout_milliseconds:=35000)
+ from public.bc_push_config where public_key is null or exists(select 1 from public.bc_push_devices d where d.due<=now() and d.baseline<>public.bc_push_items(d.owner))
 $job$);
 commit;

@@ -203,7 +203,7 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
 .modeHeading strong{color:#f4f8ff}
 </style>
 <link rel="stylesheet" href="how-to-play.css?v=bullets">
-<link rel="stylesheet" href="guess-keyboard.css?v=cursor"><script src="guess-keyboard.js?v=cursor2" defer></script></head>
+<link rel="stylesheet" href="guess-keyboard.css?v=cursor"><script src="guess-keyboard.js?v=cursor2" defer></script><link rel="manifest" href="./brainchain.webmanifest"><link rel="apple-touch-icon" href="./brainchain-logo.png"></head>
 <body>
 <script src="how-to-play.js?v=bullets" defer></script>
 <main>
@@ -287,7 +287,7 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
    </div>
   </details>
  </div>
- <div class="card"><h2>Settings</h2><button id="soundToggle" class="secondary soundToggle" type="button" role="switch" aria-label="Sound" aria-checked="true">Sound <span id="soundState" aria-hidden="true">On</span><span class="soundTrack" aria-hidden="true"></span></button></div>
+ <div class="card"><h2>Settings</h2><button id="pushToggle" type="button" class="secondary" disabled>Enable Notifications</button><button id="pushTest" type="button" class="secondary hide">Send Test Alert</button><p id="pushNotice" class="small" role="status"></p><button id="soundToggle" class="secondary soundToggle" type="button" role="switch" aria-label="Sound" aria-checked="true">Sound <span id="soundState" aria-hidden="true">On</span><span class="soundTrack" aria-hidden="true"></span></button></div>
  <div class="card"><h2>Your Player Card</h2><p class="small muted">Stats count Online Play games only</p><div id="profileStats" class="statGrid"></div><ul class="small" style="padding-inline-start:1.25em">
   <li>Word scores are out of 100</li>
   <li>Game scores are out of 400</li>
@@ -444,6 +444,7 @@ if (emailConfirmationPage) {
 }
 </script>
 <script src="brain-emoji.js"></script>
+<script src="./brainchain-alerts.js"></script>
 <script>
 const BASE='https://hsdvkdvimzyyyjdhbtzb.supabase.co';
 const KEY='sb_publishable_r5S0XJMRaDBOXIhiXzslFA_tUYSHuAR';
@@ -579,6 +580,7 @@ $('editProfile').onclick=()=>{
 };
 $('cancelProfileEdit').onclick=cancelProfileEdit;
 async function openProfile(){
+ prepareBrainAlerts();
  setProfileEditing(false);
  $('editProfile').disabled=true;
  profileOpen=true;$('profileButton').classList.add('hide');$('profilePanel').classList.remove('hide');$('lobby').classList.add('hide');$('match').classList.add('hide');$('firstTimeTip').classList.add('hide');
@@ -782,6 +784,7 @@ $('accountLinkForm').onsubmit = async event => {
     result.textContent = 'Sign-in canceled.';
     return;
    }
+   if(currentId!==signedIn.user.id && localStorage.getItem('bc_alert_owner')) await disableBrainAlerts();
    saveSession(signedIn);
    location.replace('./index.html#home');
    return;
@@ -864,7 +867,10 @@ async function refreshChat(){
    return;
   }
   setChatUnread(false);
-  if(rows.length)localStorage.setItem(seen,String(rows[0].id));
+  if(rows.length && localStorage.getItem(seen)!==String(rows[0].id)){
+   rpc('bc_push_chat',{p_code:matchCode,p_seen:rows[0].id}).then(refreshBrainBadge).catch(()=>{});
+   localStorage.setItem(seen,String(rows[0].id));refreshBrainBadge();
+  }
   const signature=matchCode+':'+rows.map(row=>row.id).join(',');
   if(signature===renderedChat)return;
   renderedChat=signature;
@@ -893,6 +899,7 @@ $('closeChat').onclick=()=>chatDialog.close();
 $('muteChat').onclick=()=>{
  const key=chatKey('mute',code);
  localStorage.setItem(key,localStorage.getItem(key)==='1'?'0':'1');
+ rpc('bc_push_chat',{p_code:code,p_mute:localStorage.getItem(key)==='1'}).then(refreshBrainBadge).catch(()=>{});
  updateChatMute();
 };
 $('chatForm').onsubmit=async e=>{
@@ -1377,10 +1384,10 @@ async function openMail(thread) {
  showMailDetail('mailThread');
  if (entries.length) {
   await mailRequest('read', {p_thread:thread.id, p_seen:entries[entries.length-1].id});
-  refreshMailboxStatus();
+  refreshMailboxStatus();refreshBrainBadge();
  }
 }
-function openMailbox(admin) {
+function openMailbox(admin,threadId) {
  mail.admin = admin;
  $('mailList').replaceChildren();
  $('mailList').classList.remove('hide');
@@ -1388,7 +1395,13 @@ function openMailbox(admin) {
  $('mailTitle').textContent = admin?'Admin Mailbox':'Messages';
  $('mailNew').textContent = admin?'New official notice':'New message';
  mailDialog.showModal();
- mailTask(listMail);
+ mailTask(async()=>{
+  await listMail();
+  if(threadId){
+   const thread=(await mailRequest('list')).find(t=>String(t.id)===threadId);
+   if(thread)await openMail(thread);
+  }
+ });
 }
 $('playerMailbox').onclick = () => openMailbox(false);
 $('adminMailbox').onclick = () => openMailbox(true);
@@ -1594,7 +1607,17 @@ setInterval(refreshMailboxStatus, 15000);
 document.addEventListener('visibilitychange', refreshMailboxStatus);
 refreshMailboxStatus();
 
-(async()=>{try{await auth();let c=new URLSearchParams(location.search).get('invite');if(c){await rpc('brainchain_join_game',{p_code:c}).catch(async()=>{let g=await rpc('bc_view',{p_code:c});if(!g)throw Error('Could not join')});await show(c)}else{await loadGames();if(location.hash==='#profile')await openProfile();
+(async()=>{try{await auth();const params=new URLSearchParams(location.search);
+ const kind=params.get('alert'),target=params.get('target');
+ if(target && ['turn','chat'].includes(kind)){
+  await show(target);
+  if(kind==='chat' && game)$('openChat').click();
+  return;
+ }
+ if(target && ['mail','admin'].includes(kind)){
+  await openProfile();openMailbox(kind==='admin',target);return;
+ }
+ let c=params.get('invite');if(c){await rpc('brainchain_join_game',{p_code:c}).catch(async()=>{let g=await rpc('bc_view',{p_code:c});if(!g)throw Error('Could not join')});await show(c)}else{await loadGames();if(location.hash==='#profile')await openProfile();
 else if(location.hash==='#your-turn'&&waitingTurns.length)turnAlert.click()}}catch(e){err(e)}})();
 </script>
 </body>
