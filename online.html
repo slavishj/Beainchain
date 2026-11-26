@@ -211,7 +211,7 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
 <body>
 <script src="how-to-play.js?v=bullets" defer></script>
 <main>
-<div class="toolbar onlineToolbar"><button id="howTo" class="secondary" type="button">How to Play</button><button id="profileButton" class="secondary" type="button">👤 Profile <span id="profileMailBadge" class="mailBadge hide"></span></button><a class="homeButton" href="./index.html#home" aria-label="Return to Home">⌂ Home</a><button id="leave" class="secondary hide">My Games</button></div>
+<div class="toolbar onlineToolbar"><button id="howTo" class="secondary" type="button">How to Play</button><button id="profileButton" class="secondary" type="button">👤 Profile <span id="profileMailBadge" class="mailBadge hide"></span></button><a class="homeButton" href="./index.html?exit-setup=1#home" aria-label="Return to Home">⌂ Home</a><button id="leave" class="secondary hide">My Games</button></div>
 <h1>Brain<span>Chain</span></h1><p class="modeHeading"><strong>Online Play</strong><span class="modeTagline">One Chain / Miles Apart!</span></p>
 <div id="firstTimeTip" class="tutorialTip hide">
  <p><strong>New to BrainChain Online?</strong> Learn the rules with a sample turn.</p>
@@ -372,6 +372,8 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
   <button id="setupCopyLink" class="secondary" type="button">Copy Link</button>
   <input id="setupRecovery" aria-label="BrainChain link" readonly hidden>
  </div>
+ <button id="setupHome" class="secondary" type="button">Go to Home</button>
+ <button id="setupExit" class="secondary" type="button" hidden>Go to My Games</button>
  <button id="setupSignIn" class="secondary" type="button" hidden>Sign In to My Existing Profile</button>
 </dialog>
 <dialog id="recoverInvite" class="card" aria-labelledby="recoverTitle">
@@ -510,7 +512,7 @@ if (emailConfirmationPage) {
 </script>
 <script src="brain-emoji.js"></script>
 <script src="./brainchain-alerts.js?v=setup"></script>
-<script src="./brainchain-setup.js?v=setup-flow"></script>
+<script src="./brainchain-setup.js?v=play-first"></script>
 <script src="./brainchain-session.js"></script>
 <script>
 const {base: BASE, key: KEY, request: authApi} = brainChainSession;
@@ -886,7 +888,7 @@ async function rpc(name,params={}){
  await auth();
  let r=await fetch(BASE+'/rest/v1/rpc/'+name,{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+session.access_token,'Content-Type':'application/json'},body:JSON.stringify(params)});
  let j=await r.json().catch(()=>null);
- if(!r.ok)throw Error(j?.message||'Could not reach game server');
+ if(!r.ok)throw Object.assign(Error(j?.message||'Could not reach game server'),{serverCode:j?.code});
  return j;
 }
 const chatDialog=$('matchChat');
@@ -1685,7 +1687,8 @@ async function joinInvitation(inviteCode, tester) {
     throw Error('This challenge may already be linked to another profile. If you opened it earlier, sign in to that profile or ask your friend for a fresh invite.');
    if (/not found|invalid|expired/i.test(joinError.message))
     throw Error('This challenge is no longer available. Ask your friend for a fresh invite.');
-   throw Error('Couldn’t open the challenge. Check your connection and tap Play Now to try again.');
+   const reference = /^[A-Z0-9]{5,8}$/.test(joinError.serverCode || '') ? ' Error reference: '+joinError.serverCode+'.' : '';
+   throw Error('BrainChain couldn’t open this challenge. You can retry or go to My Games.'+reference);
   }
  }
  if (tester && !localStorage.getItem('bc_tester_feedback_'+session.user.id))
@@ -1702,12 +1705,15 @@ function openSetupGuide(inviteCode, tester, resume) {
   enable:async()=>{await changeBrainAlerts({testOnEnable:false});return alertsForSetup()},
   test:async()=>{await sendTestAlert();return pushNotice.textContent},
   play:()=>joinInvitation(inviteCode,tester),
-  signIn:inviteCode?async()=>{
+  exit:()=>{
+   history.replaceState(null,'',location.pathname);
+   loadGames();
+  },
+  signIn:inviteCode?()=>{
    const url=brainChainSetup.link(inviteCode,tester);
    url.searchParams.set('resume','1');
    afterSetupSignIn=url.href;
-   await openProfile();
-   $('accountDetails').open=true;
+   openProfile();
    $('accountAction').value='signin';
    renderLinkAction();
    $('linkEmail').focus();

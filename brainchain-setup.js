@@ -28,7 +28,10 @@ const brainChainSetup = (() => {
   url.searchParams.set('setup', tester ? 'tester' : '1');
   return url;
  }
- if (standalone && !location.pathname.endsWith('/online.html')) {
+ if (new URL(location.href).searchParams.has('exit-setup')) {
+  remember('');
+  history.replaceState(null, '', location.pathname + location.hash);
+ } else if (standalone && !location.pathname.endsWith('/online.html')) {
   const invite = pending();
   if (invite?.profile) location.replace(new URL('./online.html#setup-resume', location.href));
   else if (invite) {
@@ -42,7 +45,7 @@ const brainChainSetup = (() => {
   event.preventDefault();
   installPrompt = event;
  });
- function open({code, tester = false, resume = false, alerts, enable, test, play, signIn} = {}) {
+ function open({code, tester = false, resume = false, alerts, enable, test, play, signIn, exit} = {}) {
   const dialog = document.getElementById('setupGuide');
   const find = id => document.getElementById(id);
   if (dialog.open) return;
@@ -51,13 +54,21 @@ const brainChainSetup = (() => {
   const detail = find('setupDetail'), sendTest = find('setupTest');
   const status = find('setupStatus'), signInButton = find('setupSignIn');
   let opening = false;
+  const exitButton = find('setupExit');
+  find('setupHome').onclick = () => {
+   remember('');
+   dialog.close();
+   location.assign(new URL('./index.html?exit-setup=1#home', location.href));
+  };
+  exitButton.hidden = true;
+  exitButton.onclick = () => { remember(''); dialog.close(); exit(); };
   let step = resume ? (standalone ? 4 : 5) : 0;
   let alertState;
   let loadingAlerts = false;
   function render(focus = true) {
    const cards = [
     [tester ? 'Jeremy invited you to play BrainChain' : code ? 'You’re invited to play BrainChain' : 'Set Up BrainChain',
-     'Add BrainChain to your Home Screen for a better playing experience. Open it with one tap and get alerts for new messages and when it’s your turn.', '', 'Start Setup'],
+     code ? 'Tap Play Now to open your challenge.' : 'Add BrainChain to your Home Screen to open it with one tap and get game alerts.', '', code ? 'Set Up Home Screen App' : 'Start Setup'],
     ['1. Find Share', 'Look beside the web address at the bottom of this screen for one of the icons below. If your web address is at the top, look there instead. Tap the three lines, then tap Share. If you see the square with the up arrow, tap that to open Share.', 'share-options', 'I Found Share'],
     ['2. Add BrainChain', 'Tap Share. Scroll down and tap Add to Home Screen. If you see Open as Web App, make sure it’s on. Tap Add.', 'share', 'Done — Next Step'],
     ['3. Open BrainChain', 'Go to the screen where you open your other apps and tap BrainChain. The guide will continue there. You can also keep going in this browser.', 'logo', 'Continue in This Browser'],
@@ -75,13 +86,20 @@ const brainChainSetup = (() => {
    title.textContent = heading;
    copy.textContent = instructions;
    visual.dataset.icon = icon;
+   const playFirst = Boolean(code) && step === 0;
+   next.classList.toggle('primary', !playFirst);
+   next.classList.toggle('secondary', playFirst);
+   skip.classList.toggle('primary', playFirst);
+   skip.classList.toggle('secondary', !playFirst);
+   if (playFirst) next.before(skip);
+   else help.after(skip);
    next.textContent = label;
    next.hidden = step === 5 && Boolean(code);
    next.disabled = step === 4 && !alertState?.enabled && !alertState?.available;
    sendTest.hidden = step !== 4 || !alertState?.enabled;
    skip.textContent = code ? 'Play Now' : 'Close Setup';
    skip.hidden = (!code && step === 5) || (code && step === 3);
-   signInButton.hidden = (step !== 4 && step !== 5) || !signIn;
+   signInButton.hidden = (step !== 0 && step !== 5) || !signIn;
    help.hidden = ![1, 2, 3, 4].includes(step);
    detail.hidden = true;
    if (focus) title.focus();
@@ -107,7 +125,7 @@ const brainChainSetup = (() => {
    if (opening) return;
    if (!code) { remember(''); dialog.close(); return; }
    opening = true;
-   next.disabled = skip.disabled = true;
+   next.disabled = skip.disabled = signInButton.disabled = exitButton.disabled = true;
    status.textContent = 'Opening your challenge…';
    try {
     await play();
@@ -116,10 +134,11 @@ const brainChainSetup = (() => {
     dialog.close();
    } catch (error) {
     go(5);
+    exitButton.hidden = false;
     status.textContent = error.message || 'Couldn’t open your challenge. Tap Play Now to try again.';
    } finally {
     opening = false;
-    skip.disabled = false;
+    skip.disabled = signInButton.disabled = exitButton.disabled = false;
     next.disabled = step === 4 && !alertState?.enabled && !alertState?.available;
    }
   }
