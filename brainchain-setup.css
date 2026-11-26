@@ -29,3 +29,18 @@
 #setupCopy .setupInlineIcon{display:inline-grid;box-sizing:border-box;width:1.65em;height:1.65em;margin-inline-end:.35em;vertical-align:middle;color:#f8faff}
 #setupCopy .setupMenuIcon{padding:.32em;gap:.12em;align-content:center;border-radius:.35em}
 #setupCopy .setupMenuIcon i{height:2px}
+
+#setupGuide li .setupActionLabel{
+ color:#a5f7df;
+ border:1px solid #79c6bb;
+ border-radius:5px;
+ padding:.02em .23em;
+ -webkit-box-decoration-break:clone;
+ box-decoration-break:clone;
+}
+#setupGuide li .setupChoiceDivider{
+ display:inline-block;
+ margin-block:.16em;
+ color:#ffd78a;
+ font-weight:900;
+}

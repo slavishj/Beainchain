@@ -66,6 +66,12 @@ const brainChainSetup = (() => {
   let step = resume ? (standalone ? 4 : 5) : 0;
   let alertState;
   let loadingAlerts = false;
+  function cloneShareIcon(selector) {
+   const icon = visual.querySelector(selector).cloneNode(true);
+   icon.classList.add('setupInlineIcon');
+   icon.setAttribute('aria-hidden', 'true');
+   return icon;
+  }
   function renderInstructions(target, instructions, showShareIcons = false) {
    if (!Array.isArray(instructions)) {
     target.textContent = instructions;
@@ -82,17 +88,27 @@ const brainChainSetup = (() => {
       });
      }
      else {
-      const iconSelector = part === 'three lines' ? '.setupMenuIcon' :
-       part === 'square with an up arrow' ? '.setupShareOption svg' : null;
-      if (showShareIcons && iconSelector) {
-       const inlineIcon = visual.querySelector(iconSelector).cloneNode(true);
-       inlineIcon.classList.add('setupInlineIcon');
-       inlineIcon.setAttribute('aria-hidden', 'true');
-       item.append(inlineIcon);
+      if (showShareIcons && (part === 'three lines' || part === 'square with an up arrow')) {
+       const icon = cloneShareIcon(part === 'three lines' ? '.setupMenuIcon' : '.setupShareOption svg');
+       icon.removeAttribute('aria-hidden');
+       icon.setAttribute('role', 'img');
+       icon.setAttribute('aria-label', part);
+       item.append(icon);
+       return;
       }
       const label = document.createElement('strong');
       label.textContent = part;
+      if (part === 'OR') label.classList.add('setupChoiceDivider');
+      else if (['Share', 'Add to Home Screen', 'Open as Web App', 'Add', 'Edit Actions',
+       'Done', 'Copy Link', 'Paste and Go', 'Enable Alerts', 'Allow',
+       'Notifications', 'Allow Notifications'].includes(part)) label.classList.add('setupActionLabel');
       item.append(label);
+      if (showShareIcons && part === 'one of these icons') {
+       const iconPair = document.createElement('span');
+       iconPair.style.whiteSpace = 'nowrap';
+       iconPair.append(cloneShareIcon('.setupMenuIcon'), cloneShareIcon('.setupShareOption svg'));
+       item.append(' ', iconPair);
+      }
      }
     });
     list.append(item);
@@ -103,7 +119,7 @@ const brainChainSetup = (() => {
    const cards = [
     [tester ? 'Jeremy invited you to play BrainChain' : code ? 'You’re invited to play BrainChain' : 'Set Up BrainChain',
      code ? 'Tap Play Now to open your challenge.' : 'Add BrainChain to your Home Screen to open it with one tap and get game alerts.', '', code ? 'Set Up Home Screen App' : 'Start Setup'],
-    ['1. Add BrainChain to your iPhone', ['Look at the *bottom of this screen* for one of these icons. If the web address is at the top, look there.', 'If you see *three lines*, tap them, then tap *Share*.\n*OR*\nIf you see a *square with an up arrow*, tap it.', 'Scroll down and tap *Add to Home Screen*.', 'If you see *Open as Web App*, make sure it’s on.', 'Tap *Add*.'], 'share-options', 'I Added BrainChain'],
+    ['1. Add BrainChain to your iPhone', ['Look at the *bottom of this screen* for *one of these icons*. If the web address is at the top, look there.', 'If you see *three lines*, tap it, then tap *Share*.\n*OR*\nIf you see *square with an up arrow*, tap it.', 'Scroll down and tap *Add to Home Screen*.', 'If you see *Open as Web App*, make sure it’s on.', 'Tap *Add*.'], 'share-options', 'I Added BrainChain'],
     ['2. Add BrainChain', ['Tap *Share*.', 'Scroll down and tap *Add to Home Screen*.', 'If you see *Open as Web App*, make sure it’s on.', 'Tap *Add*.'], 'share', 'Done — Next Step'],
     ['3. Open BrainChain', ['Go to your phone’s *Home Screen*.','Tap the new *BrainChain* icon to continue setup.'], 'logo', 'Continue in This Browser'],
     ['FINAL STEP: Turn on alerts', ['Tap *Enable Alerts*.','When your phone asks, tap *Allow*.'], '', 'Enable Alerts'],
@@ -227,7 +243,7 @@ const brainChainSetup = (() => {
   }
   find('setupFindShare').onclick = () => showHelp([
    'Look at the *bottom of your iPhone screen*, beside the web address.',
-   'If you see *three lines*, tap them, then tap *Share*.',
+   'If you see *three lines*, tap it, then tap *Share*.',
    'Still stuck? Tap *Copy Link*. Then open *Safari* (the blue compass app).',
    'Touch and hold the web address box, then tap *Paste and Go*.'
   ], true);
