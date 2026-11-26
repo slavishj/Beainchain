@@ -367,8 +367,12 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
  <button id="setupHelp" class="secondary" type="button" aria-controls="setupDetail">I Don’t See It</button>
  <button id="setupSkip" class="secondary" type="button"></button>
  <div id="setupDetail" hidden>
-  <div id="setupCompass" aria-hidden="true">🧭</div>
-  <div id="setupHelpText"></div>
+  <div id="setupHelpChoices" hidden>
+   <p>What can’t you find?</p>
+   <button id="setupFindShare" class="secondary" type="button">I Can’t Find Share</button>
+   <button id="setupFindAdd" class="secondary" type="button">I Can’t Find Add to Home Screen</button>
+  </div>
+  <div id="setupHelpText" tabindex="-1"></div>
   <button id="setupCopyLink" class="secondary" type="button">Copy Link</button>
   <input id="setupRecovery" aria-label="BrainChain link" readonly hidden>
  </div>
@@ -512,7 +516,7 @@ if (emailConfirmationPage) {
 </script>
 <script src="brain-emoji.js"></script>
 <script src="./brainchain-alerts.js?v=read-alerts"></script>
-<script src="./brainchain-setup.js?v=bullets"></script>
+<script src="./brainchain-setup.js?v=share-or"></script>
 <script src="./brainchain-session.js"></script>
 <script>
 const {base: BASE, key: KEY, request: authApi} = brainChainSession;

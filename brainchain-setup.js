@@ -55,7 +55,8 @@ const brainChainSetup = (() => {
   const status = find('setupStatus'), signInButton = find('setupSignIn');
   let opening = false;
   const exitButton = find('setupExit');
-  find('setupHome').onclick = () => {
+  const homeButton = find('setupHome');
+  homeButton.onclick = () => {
    remember('');
    dialog.close();
    location.assign(new URL('./index.html?exit-setup=1#home', location.href));
@@ -74,7 +75,12 @@ const brainChainSetup = (() => {
    for (const instruction of instructions) {
     const item = document.createElement('li');
     instruction.split('*').forEach((part, index) => {
-     if (index % 2 === 0) item.append(part);
+     if (index % 2 === 0) {
+      part.split('\n').forEach((line, lineIndex) => {
+       if (lineIndex) item.append(document.createElement('br'));
+       item.append(line);
+      });
+     }
      else {
       const label = document.createElement('strong');
       label.textContent = part;
@@ -89,7 +95,7 @@ const brainChainSetup = (() => {
    const cards = [
     [tester ? 'Jeremy invited you to play BrainChain' : code ? 'You’re invited to play BrainChain' : 'Set Up BrainChain',
      code ? 'Tap Play Now to open your challenge.' : 'Add BrainChain to your Home Screen to open it with one tap and get game alerts.', '', code ? 'Set Up Home Screen App' : 'Start Setup'],
-    ['1. Add BrainChain to your iPhone', ['Look at the *bottom of this screen* for either icon below. If the web address is at the top, look there.', 'Tap the *three lines*, then tap *Share*. If you see the *square with an up arrow*, tap it instead.', 'Scroll down and tap *Add to Home Screen*.', 'If you see *Open as Web App*, make sure it’s on.', 'Tap *Add*.'], 'share-options', 'I Added BrainChain'],
+    ['1. Add BrainChain to your iPhone', ['Look at the *bottom of this screen* for either icon below. If the web address is at the top, look there.', 'If you see *three lines*, tap them, then tap *Share*.\n*OR*\nIf you see a *square with an up arrow*, tap it.', 'Scroll down and tap *Add to Home Screen*.', 'If you see *Open as Web App*, make sure it’s on.', 'Tap *Add*.'], 'share-options', 'I Added BrainChain'],
     ['2. Add BrainChain', ['Tap *Share*.', 'Scroll down and tap *Add to Home Screen*.', 'If you see *Open as Web App*, make sure it’s on.', 'Tap *Add*.'], 'share', 'Done — Next Step'],
     ['3. Open BrainChain', ['Go to your phone’s *Home Screen*.','Tap the new *BrainChain* icon to continue setup.'], 'logo', 'Continue in This Browser'],
     ['4. Turn on alerts', ['Tap *Enable Alerts*.','When your phone asks, tap *Allow*.'], '', 'Enable Alerts'],
@@ -103,6 +109,11 @@ const brainChainSetup = (() => {
     cards[4][3] = 'Done — Next Step';
    }
    const [heading, instructions, icon, label] = cards[step];
+   const openFromHome = iphone && !standalone && step === 3;
+   if (openFromHome) {
+    instructions[0] = 'Go to the screen where you open your other apps.';
+    instructions[1] = 'Tap the *BrainChain* icon shown below. Setup continues there.';
+   }
    title.textContent = iphone && step >= 3 ? heading.replace(/^\d/, String(step - 1)) : heading;
    renderInstructions(copy, instructions);
    visual.dataset.icon = icon;
@@ -114,11 +125,13 @@ const brainChainSetup = (() => {
    if (playFirst) next.before(skip);
    else help.after(skip);
    next.textContent = label;
-   next.hidden = step === 5 && Boolean(code);
+   next.hidden = openFromHome || (step === 5 && Boolean(code));
+   homeButton.hidden = openFromHome;
+   help.textContent = openFromHome ? 'I Can’t Find the Icon' : 'I Don’t See It';
    next.disabled = step === 4 && !alertState?.enabled && !alertState?.available;
    sendTest.hidden = step !== 4 || !alertState?.enabled;
    skip.textContent = code ? 'Play Now' : 'Close Setup';
-   skip.hidden = (!code && step === 5) || (code && step === 3);
+   skip.hidden = (!code && step === 5) || (code && step === 3 && !openFromHome);
    signInButton.hidden = (step !== 0 && step !== 5) || !signIn;
    help.hidden = ![1, 2, 3, 4].includes(step);
    detail.hidden = true;
@@ -176,9 +189,6 @@ const brainChainSetup = (() => {
      await prompt.prompt().catch(() => {});
     }
     go(3);
-   } else if (step === 3 && iphone && !standalone) {
-    if (code) go(5);
-    else await finish();
    } else if (step === 4 && !alertState?.enabled) {
     next.disabled = true;
     try {
@@ -198,25 +208,43 @@ const brainChainSetup = (() => {
    try { status.textContent = await test(); }
    finally { sendTest.disabled = false; }
   };
+  const helpChoices = find('setupHelpChoices'), helpText = find('setupHelpText');
+  const copyLink = find('setupCopyLink');
+  function showHelp(instructions, showCopy = false) {
+   renderInstructions(helpText, instructions);
+   copyLink.hidden = !showCopy;
+   recovery.hidden = true;
+   helpText.focus();
+  }
+  find('setupFindShare').onclick = () => showHelp([
+   'Look at the *bottom of your iPhone screen*, beside the web address.',
+   'If you see *three lines*, tap them, then tap *Share*.',
+   'Still stuck? Tap *Copy Link*. Then open *Safari* (the blue compass app).',
+   'Touch and hold the web address box, then tap *Paste and Go*.'
+  ], true);
+  find('setupFindAdd').onclick = () => showHelp([
+   'In the *Share* menu, scroll all the way down.',
+   'Tap *Edit Actions*.',
+   'If you see *Add to Home Screen*, tap the plus next to it, then tap *Done*.',
+   'In the Share menu, tap *Add to Home Screen*.'
+  ]);
   help.onclick = () => {
    detail.hidden = !detail.hidden;
-   find('setupCopyLink').hidden = !iphone || step !== 1;
-   find('setupCompass').hidden = !iphone || step !== 1;
-   renderInstructions(find('setupHelpText'), step === 4 ?
+   if (detail.hidden) return;
+   helpChoices.hidden = !iphone || step !== 1;
+   showHelp(step === 4 ?
     ['Open your phone’s *Settings*.','Tap *Notifications*, then *BrainChain*.','Turn on *Allow Notifications*.'] :
-    step === 2 && iphone ? ['Scroll to the bottom of the Share list.', 'Tap *Edit Actions*.', 'Look for *Add to Home Screen* and add it if listed.'] :
-    step === 3 ? ['Swipe down on your iPhone’s *Home Screen*.','Type *BrainChain*.','Tap the *BrainChain* icon when it appears.'] : iphone ?
-   ['If you see Share but can’t find *Add to Home Screen*, scroll all the way down and look under *Edit Actions*.', 'If you can’t find Share, tap *Copy Link* below.', 'Open *Safari* (the blue compass app).', 'Touch and hold the web address box, then tap *Paste and Go*.'] :
-   'If your phone doesn’t offer an install button, tap Play Now. You can return to this guide from Profile.');
+    step === 3 ? ['Swipe down on your iPhone’s *Home Screen*.','Type *BrainChain*.','Tap the *BrainChain* icon when it appears.'] :
+    helpChoices.hidden ? 'If your phone doesn’t offer an install button, you can set it up later from Profile.' : '');
+   if (!helpChoices.hidden) find('setupFindShare').focus();
   };
-  const copyLink = find('setupCopyLink');
   const recovery = find('setupRecovery');
   recovery.hidden = true;
   copyLink.onclick = async () => {
    const url = code ? link(code, tester) : new URL('./online.html#setup', location.href);
    try {
     await navigator.clipboard.writeText(url.href);
-    status.textContent = 'Link copied. You can paste it in Safari or use it to open your invite in BrainChain.';
+    showHelp(['*Link copied.* Open *Safari* (the blue compass app).', 'Touch and hold the web address box.', 'Tap *Paste and Go*.']);
    } catch {
     recovery.hidden = false;
     recovery.value = url.href;
