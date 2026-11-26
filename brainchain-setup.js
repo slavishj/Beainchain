@@ -45,7 +45,7 @@ const brainChainSetup = (() => {
   event.preventDefault();
   installPrompt = event;
  });
- function open({code, tester = false, resume = false, alerts, enable, test, play, signIn, exit} = {}) {
+ function open({code, tester = false, resume = false, alerts, enable, test, play, signIn, exit, completeProfile} = {}) {
   const dialog = document.getElementById('setupGuide');
   const find = id => document.getElementById(id);
   if (dialog.open) return;
@@ -130,7 +130,7 @@ const brainChainSetup = (() => {
      ['Open your *browser menu*.','Tap *Install app* or *Add to Home screen*.'], '', installPrompt ? 'Install BrainChain' : 'Done — Next Step'];
    if (step === 4 && alertState?.enabled) {
     cards[4][1] = 'Alerts are on. You can send a test alert or finish setup.';
-    cards[4][3] = 'Finish Setup';
+    cards[4][3] = code ? 'Finish Setup' : 'Continue to Profile';
    }
    const [heading, instructions, icon, label] = cards[step];
    const openFromHome = iphone && !standalone && step === 3;
@@ -186,7 +186,7 @@ const brainChainSetup = (() => {
    next.disabled = skip.disabled = signInButton.disabled = exitButton.disabled = true;
    status.textContent = 'Opening your challenge…';
    try {
-    await play();
+    if (await play() === false) { status.textContent = ''; return; }
     remember('');
     localStorage.setItem('bc_setup_seen', '1');
     dialog.close();
@@ -224,7 +224,16 @@ const brainChainSetup = (() => {
     } finally {
      if (dialog.open) render(false);
     }
-   } else if (step === 5 || (step === 4 && !code)) {
+   } else if (step === 4 && !code) {
+    next.disabled = true;
+    try {
+     if (await completeProfile()) await finish();
+    } catch {
+     status.textContent = 'Couldn’t open your profile. Tap Continue to Profile to try again.';
+    } finally {
+     next.disabled = false;
+    }
+   } else if (step === 5) {
     await finish();
    } else go(step + 1);
   };

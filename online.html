@@ -122,6 +122,9 @@ button:disabled{opacity:.45}input{background:#101a30;border:1px solid #677895;co
 .profileBadge{width:82px;height:82px;flex:none;border-radius:50%;background:#2b5a65;border:3px solid #86f0cd;display:grid;place-items:center;font-size:43px;overflow:hidden}
 .profileBadge img{height:100%;width:100%;object-fit:cover}
 .profileIdentity{min-width:0}
+#quickProfile{width:min(460px,calc(100% - 24px));margin:auto;color:#f8faff}
+#quickProfile::backdrop{background:#080f20d9}
+#profileSignInOptions[open] #accountLinkForm{margin-top:14px}
 .profileNameRow{display:flex;align-items:center;gap:5px}
 .profileNameRow h2{margin:0;overflow-wrap:anywhere}
 .profileEditButton{min-height:44px;min-width:44px;padding:0;background:none;color:#a4f6d8;font-size:22px}
@@ -252,14 +255,14 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
    <li>Other players can see your photo and screen name</li>
   </ul>
  </div>
- <div class="card stack">
-  <h2>Play on another device</h2>
+ <details class="card" id="profileSignInOptions">
+  <summary>Save your profile or sign in</summary>
   <form id="accountLinkForm" class="stack">
-   <label for="accountAction">Choose an action</label>
+   <label for="accountAction">What would you like to do?</label>
    <select id="accountAction">
-    <option value="link">Link this profile to my email</option>
-    <option value="password">Set a password after verifying email</option>
-    <option value="signin">Sign in to an existing profile</option>
+    <option value="link">Add my email</option>
+    <option value="password">Set my password</option>
+    <option value="signin">Sign in</option>
    </select>
    <p class="small" id="accountHelp"></p>
    <label id="linkEmailLabel" for="linkEmail">Email</label>
@@ -270,7 +273,7 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
    <button id="accountContinue" class="primary" type="submit">Send verification email</button>
    <p id="accountResult" class="small" role="status"></p>
   </form>
- </div>
+ </details>
  <div class="card stack">
   <button id="playerMailbox" type="button" class="secondary hide">Messages <span id="playerMailBadge" class="mailBadge hide"></span></button>
   <button id="adminMailbox" type="button" class="secondary hide">Admin Mailbox <span id="adminMailBadge" class="mailBadge hide"></span></button>
@@ -348,6 +351,20 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
    <button type="submit" class="primary">Send reply</button>
   </form>
  </section>
+</dialog>
+<dialog id="quickProfile" class="card" aria-labelledby="quickProfileTitle">
+ <form id="quickProfileForm" class="stack">
+  <h2 id="quickProfileTitle">Set up your profile</h2>
+  <label for="quickProfileName">What name should other players see?</label>
+  <input id="quickProfileName" type="text" required minlength="3" maxlength="20" autocomplete="nickname" spellcheck="false">
+  <p class="small">Use 3–20 letters, numbers, or underscores. Start with a letter.</p>
+  <label for="quickProfileState">What state do you live in? (Optional)</label>
+  <select id="quickProfileState"><option value="">Choose a state</option></select>
+  <label class="statePrivacy"><input type="checkbox" id="quickProfilePrivate" class="statePrivacyCheck">Keep my state private</label>
+  <p id="quickProfileStatus" class="small" role="status"></p>
+  <button id="quickProfileSave" class="primary" type="submit">Save Profile</button>
+  <button id="quickProfileBack" class="secondary" type="button">Go Back</button>
+ </form>
 </dialog>
 <dialog id="setupGuide" class="card" aria-labelledby="setupTitle">
  <h2 id="setupTitle" tabindex="-1"></h2>
@@ -516,7 +533,7 @@ if (emailConfirmationPage) {
 </script>
 <script src="brain-emoji.js"></script>
 <script src="./brainchain-alerts.js?v=read-alerts"></script>
-<script src="./brainchain-setup.js?v=home-screen-steps"></script>
+<script src="./brainchain-setup.js?v=quick-profile"></script>
 <script src="./brainchain-session.js"></script>
 <script>
 const {base: BASE, key: KEY, request: authApi} = brainChainSession;
@@ -877,11 +894,11 @@ $('accountLinkForm').onsubmit = async event => {
   if (updated.id !== currentId) throw Error('Could not verify the player profile.');
   $('linkPassword').value = '';
   $('accountEmail').textContent = user.email;
-  result.textContent = 'Password saved for ' + user.email + '. On your Home Screen, open Profile and choose “Sign in to an existing profile.”';
+  result.textContent = 'Password saved for ' + user.email + '. On your Home Screen, open Profile and open “Save your profile or sign in” and choose “Sign in.”';
  } catch (error) {
   const message = error.message || 'Please try again.';
   result.textContent = action === 'signin' && /invalid login credentials|email not confirmed/i.test(message)
-   ? 'Sign-in didn’t work. Check your email and use Show password to check what you typed. If you haven’t saved a password yet, open BrainChain where you first played. In Profile, link and confirm your email, then choose Set a password after verifying email.'
+   ? 'Sign-in didn’t work. Check your email and use Show password to check what you typed. If you haven’t saved a password yet, open BrainChain where you first played. In Profile, link and confirm your email, then choose Set my password.'
    : message;
  } finally {
   button.disabled = false;
@@ -1211,6 +1228,47 @@ async function loadGames(){
   $('gamesList').replaceChildren(...sections);
  }catch(e){$('gamesStatus').textContent=e.message}
  finally{loadingGames=false}
+}
+async function completeQuickProfile(forGame) {
+ const profile=await rpc('bc_profile_get_with_state');
+ if(profile?.screenName)return true;
+ const dialog=$('quickProfile'), form=$('quickProfileForm'), save=$('quickProfileSave'), back=$('quickProfileBack');
+ const input=$('quickProfileName'), status=$('quickProfileStatus');
+ form.reset();
+ $('quickProfileState').value=profile?.state||'';
+ $('quickProfilePrivate').checked=Boolean(profile?.statePrivate);
+ status.textContent='';
+ save.textContent=forGame?'Save & Play':'Save Profile';
+ return new Promise(resolve=>{
+  function finish(saved) {
+   dialog.close();
+   resolve(saved);
+  }
+  back.onclick=()=>finish(false);
+  dialog.oncancel=event=>{event.preventDefault();if(!save.disabled)finish(false)};
+  form.onsubmit=async event=>{
+   event.preventDefault();
+   if(save.disabled)return;
+   const name=input.value.trim();
+   if(!/^[A-Za-z][A-Za-z0-9_]{2,19}$/.test(name)){
+    status.textContent='Start with a letter. Use 3–20 letters, numbers or underscores.';
+    return;
+   }
+   save.disabled=back.disabled=true;
+   status.textContent='Saving your profile…';
+   try {
+    const state=$('quickProfileState').value||null;
+    const statePrivate=Boolean(state && $('quickProfilePrivate').checked);
+    await rpc('bc_profile_save_with_state_visibility',{p_name:name,p_avatar:profile?.avatar||'🧠',
+     p_photo:profile?.photoPath||null,p_state:state,p_private:statePrivate});
+    if(profileOpen)renderProfileIdentity({...profile,screenName:name,state,statePrivate});
+    finish(true);
+   }catch(error){status.textContent=error.message||'Couldn’t save your profile. Try again.'}
+   finally{save.disabled=back.disabled=false}
+  };
+  dialog.showModal();
+  input.focus();
+ });
 }
 function invitation(){return brainChainSetup.link(code,false).href}
 async function show(codeToShow){
@@ -1544,6 +1602,7 @@ const stateSelector = $('profileState');
 const mapSelector = $('mapState');
 for (const [, code, name] of usStates) {
  stateSelector.add(new Option(name, code));
+ $('quickProfileState').add(new Option(name, code));
  mapSelector.add(new Option(name, code));
 }
 
@@ -1682,6 +1741,7 @@ document.addEventListener('visibilitychange', refreshMailboxStatus);
 refreshMailboxStatus();
 
 async function joinInvitation(inviteCode, tester) {
+ if(tester && !await completeQuickProfile(true))return false;
  await auth();
  inviteCode = String(inviteCode).trim().toUpperCase();
  try {
@@ -1711,6 +1771,7 @@ function openSetupGuide(inviteCode, tester, resume) {
   enable:async()=>{await changeBrainAlerts({testOnEnable:false});return alertsForSetup()},
   test:async()=>{await sendTestAlert();return pushNotice.textContent},
   play:()=>joinInvitation(inviteCode,tester),
+  completeProfile:()=>completeQuickProfile(false),
   exit:()=>{
    history.replaceState(null,'',location.pathname);
    loadGames();
@@ -1720,6 +1781,7 @@ function openSetupGuide(inviteCode, tester, resume) {
    url.searchParams.set('resume','1');
    afterSetupSignIn=url.href;
    openProfile();
+   $('profileSignInOptions').open=true;
    $('accountAction').value='signin';
    renderLinkAction();
    $('linkEmail').focus();
