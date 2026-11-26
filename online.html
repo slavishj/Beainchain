@@ -511,7 +511,7 @@ if (emailConfirmationPage) {
 }
 </script>
 <script src="brain-emoji.js"></script>
-<script src="./brainchain-alerts.js?v=setup"></script>
+<script src="./brainchain-alerts.js?v=read-alerts"></script>
 <script src="./brainchain-setup.js?v=play-first"></script>
 <script src="./brainchain-session.js"></script>
 <script>
@@ -934,8 +934,8 @@ async function refreshChat(){
   }
   setChatUnread(false);
   if(rows.length && localStorage.getItem(seen)!==String(rows[0].id)){
-   rpc('bc_push_chat',{p_code:matchCode,p_seen:rows[0].id}).then(refreshBrainBadge).catch(()=>{});
-   localStorage.setItem(seen,String(rows[0].id));refreshBrainBadge();
+   rpc('bc_push_chat',{p_code:matchCode,p_seen:rows[0].id}).then(()=>dismissBrainAlert('chat',matchCode)).catch(()=>{});
+   localStorage.setItem(seen,String(rows[0].id));
   }
   const signature=matchCode+':'+rows.map(row=>row.id).join(',');
   if(signature===renderedChat)return;
@@ -1216,7 +1216,9 @@ async function show(codeToShow){
  $('myScoreName').textContent='You';$('theirScoreName').textContent='Friend';
  code=String(codeToShow).trim().toUpperCase();history.replaceState(null,'','?invite='+encodeURIComponent(code));
  $('lobby').classList.add('hide');$('match').classList.remove('hide');$('leave').classList.remove('hide');
- await refresh();await refreshMatchPlayers();
+ await refresh();
+ if(game && code===String(codeToShow).trim().toUpperCase())void dismissBrainAlert('turn',code);
+ await refreshMatchPlayers();
 }
 async function refreshMatchPlayers(){
  if(!code||profileOpen)return;
@@ -1452,7 +1454,7 @@ async function openMail(thread) {
  showMailDetail('mailThread');
  if (entries.length) {
   await mailRequest('read', {p_thread:thread.id, p_seen:entries[entries.length-1].id});
-  refreshMailboxStatus();refreshBrainBadge();
+  refreshMailboxStatus();void dismissBrainAlert(mail.admin?'admin':'mail',thread.id);
  }
 }
 function openMailbox(admin,threadId) {

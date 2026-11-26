@@ -8,9 +8,22 @@ async function applyBrainBadge(count){
  if(count)await navigator.setAppBadge(count);
  else await navigator.clearAppBadge();
 }
+let badgeRequest=0;
 async function refreshBrainBadge(){
  if(document.hidden||!localStorage.getItem('bc_alert_owner'))return;
- try{await applyBrainBadge((await rpc('bc_push_status')).count)}catch{}
+ const request=++badgeRequest;
+ try{
+  const {count}=await rpc('bc_push_status');
+  if(request===badgeRequest)await applyBrainBadge(count);
+ }catch{}
+}
+async function dismissBrainAlert(kind,target){
+ try{
+  const registration=await navigator.serviceWorker?.getRegistration();
+  const notifications=await registration?.getNotifications({tag:'brainchain-'+kind+':'+target});
+  notifications?.forEach(notification=>notification.close());
+ }catch{}
+ await refreshBrainBadge();
 }
 async function prepareBrainAlerts(){
  if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window)){
