@@ -35,8 +35,8 @@
  border:1px solid #79c6bb;
  border-radius:5px;
  padding:.02em .23em;
- -webkit-box-decoration-break:clone;
- box-decoration-break:clone;
+ display:inline-block;
+ white-space:nowrap;
 }
 #setupGuide li .setupChoiceDivider{
  display:inline-block;

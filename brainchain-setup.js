@@ -119,7 +119,7 @@ const brainChainSetup = (() => {
    const cards = [
     [tester ? 'Jeremy invited you to play BrainChain' : code ? 'You’re invited to play BrainChain' : 'Set Up BrainChain',
      code ? 'Tap Play Now to open your challenge.' : 'Add BrainChain to your Home Screen to open it with one tap and get game alerts.', '', code ? 'Set Up Home Screen App' : 'Start Setup'],
-    ['1. Add BrainChain to your iPhone', ['Look at the *bottom of this screen* for *one of these icons*. If the web address is at the top, look there.', 'If you see *three lines*, tap it, then tap *Share*.\n*OR*\nIf you see *square with an up arrow*, tap it.', 'Scroll down and tap *Add to Home Screen*.', 'If you see *Open as Web App*, make sure it’s on.', 'Tap *Add*.'], 'share-options', 'I Added BrainChain'],
+    ['1. Add BrainChain to your iPhone', ['Look at the *bottom of this screen* for *one of these icons*.\n*NOTE:* Your web address may be at the top.', 'If you see *three lines*, tap it, then tap *Share*.\n*OR*\nIf you see *square with an up arrow*, tap it.', 'After either choice, scroll down and tap\n*Add to Home Screen*.', 'If you see *Open as Web App*, make sure it’s on.', 'Tap *Add*.'], 'share-options', 'I Added BrainChain'],
     ['2. Add BrainChain', ['Tap *Share*.', 'Scroll down and tap *Add to Home Screen*.', 'If you see *Open as Web App*, make sure it’s on.', 'Tap *Add*.'], 'share', 'Done — Next Step'],
     ['3. Open BrainChain', ['Go to your phone’s *Home Screen*.','Tap the new *BrainChain* icon to continue setup.'], 'logo', 'Continue in This Browser'],
     ['FINAL STEP: Turn on alerts', ['Tap *Enable Alerts*.','When your phone asks, tap *Allow*.'], '', 'Enable Alerts'],
