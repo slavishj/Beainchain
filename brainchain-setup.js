@@ -66,7 +66,7 @@ const brainChainSetup = (() => {
   let step = resume ? (standalone ? 4 : 5) : 0;
   let alertState;
   let loadingAlerts = false;
-  function renderInstructions(target, instructions) {
+  function renderInstructions(target, instructions, showShareIcons = false) {
    if (!Array.isArray(instructions)) {
     target.textContent = instructions;
     return;
@@ -82,6 +82,14 @@ const brainChainSetup = (() => {
       });
      }
      else {
+      const iconSelector = part === 'three lines' ? '.setupMenuIcon' :
+       part === 'square with an up arrow' ? '.setupShareOption svg' : null;
+      if (showShareIcons && iconSelector) {
+       const inlineIcon = visual.querySelector(iconSelector).cloneNode(true);
+       inlineIcon.classList.add('setupInlineIcon');
+       inlineIcon.setAttribute('aria-hidden', 'true');
+       item.append(inlineIcon);
+      }
       const label = document.createElement('strong');
       label.textContent = part;
       item.append(label);
@@ -95,18 +103,18 @@ const brainChainSetup = (() => {
    const cards = [
     [tester ? 'Jeremy invited you to play BrainChain' : code ? 'You’re invited to play BrainChain' : 'Set Up BrainChain',
      code ? 'Tap Play Now to open your challenge.' : 'Add BrainChain to your Home Screen to open it with one tap and get game alerts.', '', code ? 'Set Up Home Screen App' : 'Start Setup'],
-    ['1. Add BrainChain to your iPhone', ['Look at the *bottom of this screen* for either icon below. If the web address is at the top, look there.', 'If you see *three lines*, tap them, then tap *Share*.\n*OR*\nIf you see a *square with an up arrow*, tap it.', 'Scroll down and tap *Add to Home Screen*.', 'If you see *Open as Web App*, make sure it’s on.', 'Tap *Add*.'], 'share-options', 'I Added BrainChain'],
+    ['1. Add BrainChain to your iPhone', ['Look at the *bottom of this screen* for one of these icons. If the web address is at the top, look there.', 'If you see *three lines*, tap them, then tap *Share*.\n*OR*\nIf you see a *square with an up arrow*, tap it.', 'Scroll down and tap *Add to Home Screen*.', 'If you see *Open as Web App*, make sure it’s on.', 'Tap *Add*.'], 'share-options', 'I Added BrainChain'],
     ['2. Add BrainChain', ['Tap *Share*.', 'Scroll down and tap *Add to Home Screen*.', 'If you see *Open as Web App*, make sure it’s on.', 'Tap *Add*.'], 'share', 'Done — Next Step'],
     ['3. Open BrainChain', ['Go to your phone’s *Home Screen*.','Tap the new *BrainChain* icon to continue setup.'], 'logo', 'Continue in This Browser'],
-    ['4. Turn on alerts', ['Tap *Enable Alerts*.','When your phone asks, tap *Allow*.'], '', 'Enable Alerts'],
+    ['FINAL STEP: Turn on alerts', ['Tap *Enable Alerts*.','When your phone asks, tap *Allow*.'], '', 'Enable Alerts'],
     [code ? '5. Play your first game' : '5. You’re ready', code ? 'Tap Play Now to open your challenge.' : 'You can change your alerts anytime in Profile.', '', 'Done']
    ];
    if (!iphone && step === 1) cards[1] = ['1. Install BrainChain',
     installPrompt ? 'Tap Install BrainChain, then follow the message on your screen.' :
      ['Open your *browser menu*.','Tap *Install app* or *Add to Home screen*.'], '', installPrompt ? 'Install BrainChain' : 'Done — Next Step'];
    if (step === 4 && alertState?.enabled) {
-    cards[4][1] = 'Alerts are on. Send a test alert or continue.';
-    cards[4][3] = 'Done — Next Step';
+    cards[4][1] = 'Alerts are on. You can send a test alert or finish setup.';
+    cards[4][3] = 'Finish Setup';
    }
    const [heading, instructions, icon, label] = cards[step];
    const openFromHome = iphone && !standalone && step === 3;
@@ -115,8 +123,9 @@ const brainChainSetup = (() => {
     instructions[1] = 'Tap the *BrainChain* icon shown below. Setup continues there.';
    }
    title.textContent = iphone && step >= 3 ? heading.replace(/^\d/, String(step - 1)) : heading;
-   renderInstructions(copy, instructions);
-   visual.dataset.icon = icon;
+   const inlineShareIcons = icon === 'share-options';
+   renderInstructions(copy, instructions, inlineShareIcons);
+   visual.dataset.icon = inlineShareIcons ? '' : icon;
    const playFirst = Boolean(code) && step === 0;
    next.classList.toggle('primary', !playFirst);
    next.classList.toggle('secondary', playFirst);
@@ -199,7 +208,7 @@ const brainChainSetup = (() => {
     } finally {
      if (dialog.open) render(false);
     }
-   } else if (step === 5) {
+   } else if (step === 5 || (step === 4 && !code)) {
     await finish();
    } else go(step + 1);
   };
