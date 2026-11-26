@@ -207,7 +207,7 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
 .modeHeading strong{color:#f4f8ff}
 </style>
 <link rel="stylesheet" href="how-to-play.css?v=bullets">
-<link rel="stylesheet" href="guess-keyboard.css?v=cursor"><script src="guess-keyboard.js?v=cursor2" defer></script><link rel="manifest" href="./brainchain.webmanifest"><link rel="apple-touch-icon" href="./brainchain-logo.png"><link rel="stylesheet" href="./brainchain-setup.css?v=share-options"></head>
+<link rel="stylesheet" href="guess-keyboard.css?v=cursor"><script src="guess-keyboard.js?v=cursor2" defer></script><link rel="manifest" href="./brainchain.webmanifest"><link rel="apple-touch-icon" href="./brainchain-logo.png"><link rel="stylesheet" href="./brainchain-setup.css?v=bullets"></head>
 <body>
 <script src="how-to-play.js?v=bullets" defer></script>
 <main>
@@ -351,7 +351,7 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
 </dialog>
 <dialog id="setupGuide" class="card" aria-labelledby="setupTitle">
  <h2 id="setupTitle" tabindex="-1"></h2>
- <p id="setupCopy"></p>
+ <div id="setupCopy"></div>
  <div id="setupVisual" data-icon="">
   <span class="setupMenuOption"><span class="setupMenuIcon" aria-hidden="true"><i></i><i></i><i></i></span><span>Three-line menu</span></span>
   <span class="setupShareOption">
@@ -368,7 +368,7 @@ main:has(> #profilePanel:not(.hide)) > .modeHeading{display:none}
  <button id="setupSkip" class="secondary" type="button"></button>
  <div id="setupDetail" hidden>
   <div id="setupCompass" aria-hidden="true">🧭</div>
-  <p id="setupHelpText"></p>
+  <div id="setupHelpText"></div>
   <button id="setupCopyLink" class="secondary" type="button">Copy Link</button>
   <input id="setupRecovery" aria-label="BrainChain link" readonly hidden>
  </div>
@@ -512,7 +512,7 @@ if (emailConfirmationPage) {
 </script>
 <script src="brain-emoji.js"></script>
 <script src="./brainchain-alerts.js?v=read-alerts"></script>
-<script src="./brainchain-setup.js?v=play-first"></script>
+<script src="./brainchain-setup.js?v=bullets"></script>
 <script src="./brainchain-session.js"></script>
 <script>
 const {base: BASE, key: KEY, request: authApi} = brainChainSession;

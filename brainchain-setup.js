@@ -65,26 +65,46 @@ const brainChainSetup = (() => {
   let step = resume ? (standalone ? 4 : 5) : 0;
   let alertState;
   let loadingAlerts = false;
+  function renderInstructions(target, instructions) {
+   if (!Array.isArray(instructions)) {
+    target.textContent = instructions;
+    return;
+   }
+   const list = document.createElement('ul');
+   for (const instruction of instructions) {
+    const item = document.createElement('li');
+    instruction.split('*').forEach((part, index) => {
+     if (index % 2 === 0) item.append(part);
+     else {
+      const label = document.createElement('strong');
+      label.textContent = part;
+      item.append(label);
+     }
+    });
+    list.append(item);
+   }
+   target.replaceChildren(list);
+  }
   function render(focus = true) {
    const cards = [
     [tester ? 'Jeremy invited you to play BrainChain' : code ? 'You’re invited to play BrainChain' : 'Set Up BrainChain',
      code ? 'Tap Play Now to open your challenge.' : 'Add BrainChain to your Home Screen to open it with one tap and get game alerts.', '', code ? 'Set Up Home Screen App' : 'Start Setup'],
-    ['1. Find Share', 'Look beside the web address at the bottom of this screen for one of the icons below. If your web address is at the top, look there instead. Tap the three lines, then tap Share. If you see the square with the up arrow, tap that to open Share.', 'share-options', 'I Found Share'],
-    ['2. Add BrainChain', 'Tap Share. Scroll down and tap Add to Home Screen. If you see Open as Web App, make sure it’s on. Tap Add.', 'share', 'Done — Next Step'],
-    ['3. Open BrainChain', 'Go to the screen where you open your other apps and tap BrainChain. The guide will continue there. You can also keep going in this browser.', 'logo', 'Continue in This Browser'],
-    ['4. Turn on alerts', 'Tap Enable Alerts. When your phone asks, tap Allow.', '', 'Enable Alerts'],
+    ['1. Add BrainChain to your iPhone', ['Look at the *bottom of this screen* for either icon below. If the web address is at the top, look there.', 'Tap the *three lines*, then tap *Share*. If you see the *square with an up arrow*, tap it instead.', 'Scroll down and tap *Add to Home Screen*.', 'If you see *Open as Web App*, make sure it’s on.', 'Tap *Add*.'], 'share-options', 'I Added BrainChain'],
+    ['2. Add BrainChain', ['Tap *Share*.', 'Scroll down and tap *Add to Home Screen*.', 'If you see *Open as Web App*, make sure it’s on.', 'Tap *Add*.'], 'share', 'Done — Next Step'],
+    ['3. Open BrainChain', ['Go to your phone’s *Home Screen*.','Tap the new *BrainChain* icon to continue setup.'], 'logo', 'Continue in This Browser'],
+    ['4. Turn on alerts', ['Tap *Enable Alerts*.','When your phone asks, tap *Allow*.'], '', 'Enable Alerts'],
     [code ? '5. Play your first game' : '5. You’re ready', code ? 'Tap Play Now to open your challenge.' : 'You can change your alerts anytime in Profile.', '', 'Done']
    ];
    if (!iphone && step === 1) cards[1] = ['1. Install BrainChain',
     installPrompt ? 'Tap Install BrainChain, then follow the message on your screen.' :
-     'Open your browser menu. Look for Install app or Add to Home screen.', '', installPrompt ? 'Install BrainChain' : 'Done — Next Step'];
+     ['Open your *browser menu*.','Tap *Install app* or *Add to Home screen*.'], '', installPrompt ? 'Install BrainChain' : 'Done — Next Step'];
    if (step === 4 && alertState?.enabled) {
     cards[4][1] = 'Alerts are on. Send a test alert or continue.';
     cards[4][3] = 'Done — Next Step';
    }
    const [heading, instructions, icon, label] = cards[step];
-   title.textContent = heading;
-   copy.textContent = instructions;
+   title.textContent = iphone && step >= 3 ? heading.replace(/^\d/, String(step - 1)) : heading;
+   renderInstructions(copy, instructions);
    visual.dataset.icon = icon;
    const playFirst = Boolean(code) && step === 0;
    next.classList.toggle('primary', !playFirst);
@@ -149,8 +169,8 @@ const brainChainSetup = (() => {
    if (step === 0) {
     if (!standalone) remember(code || null, tester);
     go(standalone ? 4 : 1);
-   } else if (step === 1 && !iphone) {
-    if (installPrompt) {
+   } else if (step === 1) {
+    if (!iphone && installPrompt) {
      const prompt = installPrompt;
      installPrompt = null;
      await prompt.prompt().catch(() => {});
@@ -182,12 +202,12 @@ const brainChainSetup = (() => {
    detail.hidden = !detail.hidden;
    find('setupCopyLink').hidden = !iphone || step !== 1;
    find('setupCompass').hidden = !iphone || step !== 1;
-   find('setupHelpText').textContent = step === 4 ?
-    'If you already tapped Don’t Allow, open Settings on your phone. Tap Notifications, then BrainChain, and turn on Allow Notifications.' :
-    step === 2 && iphone ? 'In the Share list, scroll to the bottom and tap Edit Actions. Add Add to Home Screen if it’s listed there.' :
-    step === 3 ? 'On an iPhone, swipe down on the screen where your apps are and type BrainChain. Tap the BrainChain icon when it appears.' : iphone ?
-   'Still can’t find Share? Tap Copy Link below. Open the blue compass app called Safari. Touch and hold the web address box, then tap Paste and Go.' :
-   'If your phone doesn’t offer an install button, tap Play Now. You can return to this guide from Profile.';
+   renderInstructions(find('setupHelpText'), step === 4 ?
+    ['Open your phone’s *Settings*.','Tap *Notifications*, then *BrainChain*.','Turn on *Allow Notifications*.'] :
+    step === 2 && iphone ? ['Scroll to the bottom of the Share list.', 'Tap *Edit Actions*.', 'Look for *Add to Home Screen* and add it if listed.'] :
+    step === 3 ? ['Swipe down on your iPhone’s *Home Screen*.','Type *BrainChain*.','Tap the *BrainChain* icon when it appears.'] : iphone ?
+   ['If you see Share but can’t find *Add to Home Screen*, scroll all the way down and look under *Edit Actions*.', 'If you can’t find Share, tap *Copy Link* below.', 'Open *Safari* (the blue compass app).', 'Touch and hold the web address box, then tap *Paste and Go*.'] :
+   'If your phone doesn’t offer an install button, tap Play Now. You can return to this guide from Profile.');
   };
   const copyLink = find('setupCopyLink');
   const recovery = find('setupRecovery');
